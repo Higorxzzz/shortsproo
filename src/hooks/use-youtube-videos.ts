@@ -18,7 +18,11 @@ export function useYouTubeVideos({ channelId, enabled = true }: UseYouTubeVideos
   return useQuery({
     queryKey: ["youtube-videos", channelId],
     enabled: enabled && !!channelId,
-    staleTime: 5 * 60 * 1000, // 5 min
+    staleTime: 60 * 60 * 1000, // 1 hour - don't refetch for 1h
+    gcTime: 24 * 60 * 60 * 1000, // 24h - keep in memory for 24h
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     retry: (failureCount, error: any) => {
       if (error?.status === 403) return false;
       return failureCount < 2;
