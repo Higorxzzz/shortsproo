@@ -1,7 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload } from "lucide-react";
+import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AdminLink = {
@@ -19,6 +19,7 @@ const adminLinks: AdminLink[] = [
   { to: "/admin/plans", icon: CreditCard, labelKey: "plans", requiredRoles: ["admin"] },
   { to: "/admin/videos", icon: Film, labelKey: "videos", requiredRoles: ["admin", "manager"] },
   { to: "/admin/raw-videos", icon: Upload, labelKey: "rawVideos", requiredRoles: ["admin", "manager", "editor"] },
+  { to: "/admin/chats", icon: MessageCircle, labelKey: "chats", requiredRoles: ["admin", "manager"] },
   { to: "/admin/settings", icon: Settings, labelKey: "settings", requiredRoles: ["admin"] },
 ];
 
@@ -38,6 +39,7 @@ const AdminLayout = () => {
     plans: t.admin.plans,
     videos: t.admin.videos,
     rawVideos: t.language === "pt" ? "Vídeos Brutos" : "Raw Videos",
+    chats: t.language === "pt" ? "Chats" : "Chats",
     settings: t.admin.settings,
   };
 
