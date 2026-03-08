@@ -68,7 +68,7 @@ export const Navbar = () => {
           <div className="flex flex-col gap-3">
             <Link to="/plans" onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.plans}</Link>
             {user && <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.dashboard}</Link>}
-            {isAdmin && <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.admin}</Link>}
+            {isTeamMember && <Link to={isAdmin ? "/admin" : "/admin/production"} onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.admin}</Link>}
             <LanguageSwitcher />
             {user ? (
               <Button variant="ghost" size="sm" onClick={() => { handleSignOut(); setMobileOpen(false); }}>{t.nav.logout}</Button>
