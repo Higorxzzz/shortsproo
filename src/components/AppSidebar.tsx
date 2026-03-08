@@ -5,7 +5,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   Upload, Film, CreditCard, Settings, LogOut, Zap,
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
-  Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle,
+  Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle, Megaphone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -84,6 +84,7 @@ export function AppSidebar() {
     { to: "/admin/videos", icon: Film, label: isPt ? "Vídeos" : "Videos", roles: ["admin", "manager"] },
     { to: "/admin/raw-videos", icon: HardDrive, label: isPt ? "Vídeos Brutos" : "Raw Videos", roles: ["admin", "manager", "editor"] },
     { to: "/admin/chats", icon: MessageCircle, label: "Chats", roles: ["admin", "manager"] },
+    { to: "/admin/announcements", icon: Megaphone, label: isPt ? "Avisos" : "Announcements", roles: ["admin"] },
     { to: "/admin/settings", icon: Settings, label: isPt ? "Config." : "Settings", roles: ["admin"] },
   ];
 

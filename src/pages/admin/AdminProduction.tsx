@@ -34,6 +34,8 @@ import {
   Send,
   Sparkles,
   AlertCircle,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
 import AddVideoLinkDialog from "@/components/AddVideoLinkDialog";
@@ -218,6 +220,25 @@ const AdminProduction = () => {
       queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
     },
     onError: () => toast({ title: isPt ? "Erro ao atualizar" : "Update error", variant: "destructive" }),
+  });
+
+  // ---------- Delete delivered video & reset task ----------
+  const deleteVideoMutation = useMutation({
+    mutationFn: async ({ taskId, videoId }: { taskId: string; videoId: string }) => {
+      // Reset task back to ready
+      await supabase
+        .from("tasks")
+        .update({ status: "ready", video_id: null, completed_at: null, completed_by: null })
+        .eq("id", taskId);
+      // Delete video
+      await supabase.from("videos").delete().eq("id", videoId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      toast({ title: isPt ? "Vídeo removido" : "Video removed" });
+    },
+    onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
 
   // ---------- Group & filter ----------
@@ -651,7 +672,7 @@ const AdminProduction = () => {
                                           </Button>
                                         )}
 
-                                        {/* Deliver link button (only when ready or pending/editing) */}
+                                        {/* Deliver link button (only when not completed) */}
                                         {statusKey !== "completed" && (
                                           <Button
                                             size="sm"
@@ -662,6 +683,44 @@ const AdminProduction = () => {
                                             <Link2 className="h-3 w-3" />
                                             {isPt ? "Entregar" : "Deliver"}
                                           </Button>
+                                        )}
+
+                                        {/* Edit delivered video (re-deliver) */}
+                                        {statusKey === "completed" && task.video_id && (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-8 w-8 p-0"
+                                              onClick={() => {
+                                                // Delete current video then open dialog to re-add
+                                                deleteVideoMutation.mutate(
+                                                  { taskId: task.id, videoId: task.video_id! },
+                                                  {
+                                                    onSuccess: () => setUploadTask(task),
+                                                  }
+                                                );
+                                              }}
+                                              title={isPt ? "Editar link" : "Edit link"}
+                                            >
+                                              <Pencil className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                              disabled={deleteVideoMutation.isPending}
+                                              onClick={() =>
+                                                deleteVideoMutation.mutate({
+                                                  taskId: task.id,
+                                                  videoId: task.video_id!,
+                                                })
+                                              }
+                                              title={isPt ? "Remover vídeo" : "Remove video"}
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </>
                                         )}
                                       </div>
                                     </div>

@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import RawVideoUpload from "@/components/dashboard/RawVideoUpload";
 import RawVideosList from "@/components/dashboard/RawVideosList";
+import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 
 const Dashboard = () => {
   const { t } = useLanguage();
@@ -74,6 +75,9 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Announcements */}
+      <AnnouncementBanner />
+
       {/* Hero section */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
