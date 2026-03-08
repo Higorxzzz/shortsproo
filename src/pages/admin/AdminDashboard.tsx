@@ -17,6 +17,7 @@ const CHART_COLORS = [
 
 const AdminDashboard = () => {
   const { t } = useLanguage();
+  const isPt = (t as any).language === "pt";
 
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
