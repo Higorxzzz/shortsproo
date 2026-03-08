@@ -334,34 +334,54 @@ const AdminProduction = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {group.tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                          task.status === "completed"
-                            ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
-                            : "border-border bg-card"
-                        }`}
-                      >
-                        {task.status === "completed" ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : (
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        <span>Short {task.task_number}</span>
-                        {task.status !== "completed" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="ml-1 h-7 px-2"
-                            onClick={() => setDeliveryTask(task)}
+                    {group.tasks.map((task) => {
+                      const isCommentsOpen = expandedComments.has(task.id);
+                      return (
+                        <div key={task.id} className="w-full">
+                          <div
+                            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                              task.status === "completed"
+                                ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                : "border-border bg-card"
+                            }`}
                           >
-                            <Send className="mr-1 h-3 w-3" />
-                            {isPt ? "Enviar" : "Deliver"}
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                            {task.status === "completed" ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <span>Short {task.task_number}</span>
+                            <div className="ml-auto flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => {
+                                  const next = new Set(expandedComments);
+                                  if (isCommentsOpen) next.delete(task.id);
+                                  else next.add(task.id);
+                                  setExpandedComments(next);
+                                }}
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                              </Button>
+                              {task.status !== "completed" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2"
+                                  onClick={() => setDeliveryTask(task)}
+                                >
+                                  <Send className="mr-1 h-3 w-3" />
+                                  {isPt ? "Enviar" : "Deliver"}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <TaskComments taskId={task.id} isOpen={isCommentsOpen} />
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
