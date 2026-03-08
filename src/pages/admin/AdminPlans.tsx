@@ -16,7 +16,7 @@ const AdminPlans = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", shorts_per_day: 1, price: 0, description: "" });
+  const [form, setForm] = useState({ name: "", shorts_per_day: 1, price: 0, price_second_month: 0, description: "" });
 
   const { data: plans = [] } = useQuery({
     queryKey: ["plans"],
@@ -34,7 +34,7 @@ const AdminPlans = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plans"] });
       setOpen(false);
-      setForm({ name: "", shorts_per_day: 1, price: 0, description: "" });
+      setForm({ name: "", shorts_per_day: 1, price: 0, price_second_month: 0, description: "" });
       toast.success(t.language === "pt" ? "Plano criado!" : "Plan created!");
     },
   });
@@ -74,7 +74,8 @@ const AdminPlans = () => {
             <div className="flex flex-col gap-4">
               <div><Label>{t.admin.planName}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>{t.admin.planShorts}</Label><Input type="number" value={form.shorts_per_day} onChange={(e) => setForm({ ...form, shorts_per_day: Number(e.target.value) })} /></div>
-              <div><Label>{t.admin.planPrice}</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
+              <div><Label>{t.admin.planPrice} (1º mês)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
+              <div><Label>Preço 2º mês+</Label><Input type="number" value={form.price_second_month} onChange={(e) => setForm({ ...form, price_second_month: Number(e.target.value) })} /></div>
               <div><Label>{t.admin.planDesc}</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
               <Button onClick={() => addPlan.mutate()} disabled={!form.name}>{t.admin.save}</Button>
             </div>
@@ -89,7 +90,8 @@ const AdminPlans = () => {
               <TableRow>
                 <TableHead>{t.admin.planName}</TableHead>
                 <TableHead>{t.admin.planShorts}</TableHead>
-                <TableHead>{t.admin.planPrice}</TableHead>
+                <TableHead>Preço 1º mês</TableHead>
+                <TableHead>Preço 2º mês+</TableHead>
                 <TableHead>{t.admin.planDesc}</TableHead>
                 <TableHead>{t.admin.actions}</TableHead>
               </TableRow>
@@ -118,6 +120,14 @@ const AdminPlans = () => {
                       defaultValue={plan.price}
                       className="h-8 w-24"
                       onBlur={(e) => { const v = Number(e.target.value); if (v !== plan.price) updatePlan.mutate({ id: plan.id, updates: { price: v } }); }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      defaultValue={plan.price_second_month}
+                      className="h-8 w-24"
+                      onBlur={(e) => { const v = Number(e.target.value); if (v !== plan.price_second_month) updatePlan.mutate({ id: plan.id, updates: { price_second_month: v } }); }}
                     />
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{plan.description}</TableCell>

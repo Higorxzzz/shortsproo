@@ -12,10 +12,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 // Stripe price/product mapping
-const STRIPE_TIERS: Record<string, { price_id: string; product_id: string }> = {
-  Basic: { price_id: "price_1T8oo2Gl9Dro90S68L6UguJr", product_id: "prod_U72tPmImkbfpiF" },
-  Medium: { price_id: "price_1T8oo3Gl9Dro90S6MOgthfTE", product_id: "prod_U72tUJo2TTwMHq" },
-  Pro: { price_id: "price_1T8oo4Gl9Dro90S6TpLq5EMG", product_id: "prod_U72tvbbVzNOWEJ" },
+const STRIPE_TIERS: Record<string, { price_id: string; product_id: string; coupon_id: string }> = {
+  Basic: { price_id: "price_1T8oziGl9Dro90S65eTOEztc", product_id: "prod_U735ZwU7iNkekI", coupon_id: "9WabNny8" },
+  Medium: { price_id: "price_1T8ozjGl9Dro90S66BVXU8pc", product_id: "prod_U735dHxMLFG8yb", coupon_id: "VPFy5fKH" },
+  Pro: { price_id: "price_1T8ozkGl9Dro90S6czSCyosm", product_id: "prod_U7359CmAc4D32R", coupon_id: "qAnupTXk" },
 };
 
 const Plans = () => {
@@ -66,7 +66,7 @@ const Plans = () => {
     setCheckingOut(planName);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: tier.price_id },
+        body: { priceId: tier.price_id, couponId: tier.coupon_id },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
@@ -143,8 +143,13 @@ const Plans = () => {
                   <CardTitle className="font-heading text-xl">{plan.name}</CardTitle>
                   <div className="mt-2">
                     <span className="text-3xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground">/{isPt ? "mês" : "mo"}</span>
+                    <span className="text-muted-foreground"> /{isPt ? "1º mês" : "1st mo"}</span>
                   </div>
+                  {plan.price_second_month > 0 && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {isPt ? "A partir do 2º mês:" : "From 2nd month:"} ${plan.price_second_month}/{isPt ? "mês" : "mo"}
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
