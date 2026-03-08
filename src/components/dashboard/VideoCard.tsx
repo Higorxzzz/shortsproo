@@ -96,7 +96,7 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
             variant="default"
             className="h-8 flex-1 text-xs"
             onClick={() => {
-              window.open(downloadUrl, "_blank");
+              window.location.assign(downloadUrl);
               if (video.status === "new") markDownloaded.mutate(video.id);
             }}
           >

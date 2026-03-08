@@ -246,7 +246,7 @@ const Dashboard = () => {
                                   const dlUrl = video.drive_file_id
                                     ? `https://drive.usercontent.google.com/download?id=${video.drive_file_id}&export=download&confirm=t`
                                     : video.drive_link;
-                                  window.open(dlUrl, "_blank");
+                                  window.location.assign(dlUrl);
                                   if (video.status === "new") markDownloaded.mutate(video.id);
                                 }}
                               >
