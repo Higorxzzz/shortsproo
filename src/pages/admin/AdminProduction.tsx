@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -303,7 +302,7 @@ const AdminProduction = () => {
               <div key={col.key} className="flex flex-col">
                 {/* Column header */}
                 <div className={`flex items-center gap-2 rounded-t-xl border px-4 py-3 ${col.bgClass}`}>
-                  <Icon className={`h-4.5 w-4.5 ${col.colorClass}`} />
+                  <Icon className={`h-4 w-4 ${col.colorClass}`} />
                   <span className="font-semibold text-sm">
                     {isPt ? col.labelPt : col.labelEn}
                   </span>
@@ -313,7 +312,7 @@ const AdminProduction = () => {
                 </div>
 
                 {/* Column body */}
-                <ScrollArea className="flex-1 rounded-b-xl border border-t-0 bg-muted/20 p-2 min-h-[300px] max-h-[calc(100vh-320px)]">
+                <div className="flex-1 rounded-b-xl border border-t-0 bg-muted/20 p-2 min-h-[300px] max-h-[calc(100vh-320px)] overflow-y-auto">
                   <div className="space-y-2">
                     <AnimatePresence mode="popLayout">
                       {items.length === 0 ? (
@@ -354,7 +353,7 @@ const AdminProduction = () => {
                       )}
                     </AnimatePresence>
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             );
           })}
