@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import VideoCard from "@/components/dashboard/VideoCard";
 import VideoPreviewModal from "@/components/dashboard/VideoPreviewModal";
 import DeliveryCalendar from "@/components/dashboard/DeliveryCalendar";
+import YouTubeShortsCarousel from "@/components/dashboard/YouTubeShortsCarousel";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 
 const MyVideos = () => {
