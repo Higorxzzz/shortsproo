@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, Clock, Film, Filter, Loader2, Play, RefreshCw, Send, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Send, AlertCircle } from "lucide-react";
+import TaskComments from "@/components/TaskComments";
 
 type TaskWithUser = {
   id: string;
