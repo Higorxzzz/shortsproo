@@ -101,7 +101,7 @@ const DeliveryCalendar = ({ videos, onPreview }: DeliveryCalendarProps) => {
                 <button
                   key={dateKey}
                   onClick={() => setSelectedDay(isSelected ? null : dateKey)}
-                  className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-sm transition-all duration-150
+                  className={`relative flex aspect-square flex-col items-center justify-center rounded-md text-xs transition-all duration-150
                     ${isSelected ? "bg-primary text-primary-foreground shadow-sm" : ""}
                     ${!isSelected && isToday ? "bg-primary/10 text-primary font-semibold" : ""}
                     ${!isSelected && !isToday ? "hover:bg-muted" : ""}

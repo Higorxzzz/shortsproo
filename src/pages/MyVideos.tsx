@@ -121,8 +121,8 @@ const MyVideos = () => {
                 <CardTitle className="text-lg">{isPt ? "Entregas de Hoje" : "Today's Deliveries"}</CardTitle>
               </div>
               {todayDeliveredCount > 0 && (
-                <Badge variant={todayDownloadedCount === todayDeliveredCount ? "default" : "secondary"} className="text-xs">
-                  {todayDownloadedCount}/{todayDeliveredCount} {isPt ? "baixados" : "downloaded"}
+                <Badge variant={todayDeliveredCount >= shortsPerDay ? "default" : "secondary"} className="text-xs">
+                  {todayDeliveredCount}/{shortsPerDay} {isPt ? "entregues" : "delivered"}
                 </Badge>
               )}
             </div>
