@@ -12,7 +12,7 @@ import { Youtube, Check, X, Pencil } from "lucide-react";
 
 const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: string) => void }) => {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(user.youtube_channel || "");
+  const [value, setValue] = useState(user.youtube_channel_id || "");
 
   const handleSave = () => {
     onSave(user.id, value.trim());
@@ -20,7 +20,7 @@ const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: 
   };
 
   const handleCancel = () => {
-    setValue(user.youtube_channel || "");
+    setValue(user.youtube_channel_id || "");
     setEditing(false);
   };
 
@@ -50,9 +50,9 @@ const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: 
 
   return (
     <div className="flex items-center gap-1.5">
-      {user.youtube_channel ? (
-        <span className="max-w-[120px] truncate text-xs font-mono" title={user.youtube_channel}>
-          {user.youtube_channel}
+      {user.youtube_channel_id ? (
+        <span className="max-w-[120px] truncate text-xs font-mono" title={user.youtube_channel_id}>
+          {user.youtube_channel_id}
         </span>
       ) : (
         <span className="text-xs text-muted-foreground">—</span>
@@ -96,8 +96,8 @@ const AdminUsers = () => {
     },
   });
 
-  const handleChannelSave = (userId: string, channelId: string) => {
-    updateUser.mutate({ userId, updates: { youtube_channel: channelId || null } });
+  const handleChannelIdSave = (userId: string, channelId: string) => {
+    updateUser.mutate({ userId, updates: { youtube_channel_id: channelId || null } });
   };
 
   return (
@@ -113,9 +113,10 @@ const AdminUsers = () => {
                 <TableHead>
                   <div className="flex items-center gap-1">
                     <Youtube className="h-3.5 w-3.5" />
-                    Channel ID
+                    {isPt ? "Canal" : "Channel"}
                   </div>
                 </TableHead>
+                <TableHead>Channel ID (API)</TableHead>
                 <TableHead>{t.admin.userPlan}</TableHead>
                 <TableHead>{t.admin.userStatus}</TableHead>
                 <TableHead>{t.admin.actions}</TableHead>
@@ -127,7 +128,22 @@ const AdminUsers = () => {
                   <TableCell className="font-medium">{user.name || "-"}</TableCell>
                   <TableCell>{user.email || "-"}</TableCell>
                   <TableCell>
-                    <ChannelIdCell user={user} onSave={handleChannelSave} />
+                    {user.youtube_channel ? (
+                      <a
+                        href={user.youtube_channel.startsWith("http") ? user.youtube_channel : `https://youtube.com/${user.youtube_channel}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="max-w-[140px] truncate text-xs text-primary hover:underline block"
+                        title={user.youtube_channel}
+                      >
+                        {user.youtube_channel}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <ChannelIdCell user={user} onSave={handleChannelIdSave} />
                   </TableCell>
                   <TableCell>
                     <select
@@ -165,7 +181,7 @@ const AdminUsers = () => {
               ))}
               {users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     {isPt ? "Nenhum usuário encontrado" : "No users found"}
                   </TableCell>
                 </TableRow>

@@ -307,7 +307,7 @@ const MyVideos = () => {
 
       {/* YouTube Shorts Carousel */}
       <div className="mt-8">
-        <YouTubeShortsCarousel channelId={(profile as any)?.youtube_channel} />
+        <YouTubeShortsCarousel channelId={(profile as any)?.youtube_channel_id} />
       </div>
 
       <VideoPreviewModal
