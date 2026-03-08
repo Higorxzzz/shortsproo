@@ -83,6 +83,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          price_second_month: number
           shorts_per_day: number
         }
         Insert: {
@@ -91,6 +92,7 @@ export type Database = {
           id?: string
           name: string
           price?: number
+          price_second_month?: number
           shorts_per_day?: number
         }
         Update: {
@@ -99,6 +101,7 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          price_second_month?: number
           shorts_per_day?: number
         }
         Relationships: []
