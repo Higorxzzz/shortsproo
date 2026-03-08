@@ -6,8 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import DashboardLayout from "@/components/DashboardLayout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -37,48 +35,11 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
-                {/* Public routes with top navbar */}
-                <Route
-                  path="/"
-                  element={
-                    <div className="flex min-h-screen flex-col">
-                      <Navbar />
-                      <main className="flex-1"><Landing /></main>
-                      <Footer />
-                    </div>
-                  }
-                />
-                <Route
-                  path="/login"
-                  element={
-                    <div className="flex min-h-screen flex-col">
-                      <Navbar />
-                      <main className="flex-1"><Login /></main>
-                    </div>
-                  }
-                />
-                <Route
-                  path="/register"
-                  element={
-                    <div className="flex min-h-screen flex-col">
-                      <Navbar />
-                      <main className="flex-1"><Register /></main>
-                    </div>
-                  }
-                />
-                <Route
-                  path="/plans"
-                  element={
-                    <div className="flex min-h-screen flex-col">
-                      <Navbar />
-                      <main className="flex-1"><Plans /></main>
-                      <Footer />
-                    </div>
-                  }
-                />
-
-                {/* Authenticated routes with sidebar */}
                 <Route element={<DashboardLayout />}>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/plans" element={<Plans />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/my-videos" element={<MyVideos />} />
                   <Route path="/admin" element={<AdminDashboard />} />
@@ -89,9 +50,8 @@ const App = () => (
                   <Route path="/admin/videos" element={<AdminVideos />} />
                   <Route path="/admin/raw-videos" element={<AdminRawVideos />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="*" element={<NotFound />} />
                 </Route>
-
-                <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>
           </BrowserRouter>
