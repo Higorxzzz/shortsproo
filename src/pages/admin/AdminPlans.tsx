@@ -74,7 +74,8 @@ const AdminPlans = () => {
             <div className="flex flex-col gap-4">
               <div><Label>{t.admin.planName}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>{t.admin.planShorts}</Label><Input type="number" value={form.shorts_per_day} onChange={(e) => setForm({ ...form, shorts_per_day: Number(e.target.value) })} /></div>
-              <div><Label>{t.admin.planPrice}</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
+              <div><Label>{t.admin.planPrice} (1º mês)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
+              <div><Label>Preço 2º mês+</Label><Input type="number" value={form.price_second_month} onChange={(e) => setForm({ ...form, price_second_month: Number(e.target.value) })} /></div>
               <div><Label>{t.admin.planDesc}</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
               <Button onClick={() => addPlan.mutate()} disabled={!form.name}>{t.admin.save}</Button>
             </div>
