@@ -89,6 +89,10 @@ const AdminProduction = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deliverVideo, setDeliverVideo] = useState<RawVideo | null>(null);
   const [driveLinks, setDriveLinks] = useState<string[]>([]);
+  const [editDeliveredVideo, setEditDeliveredVideo] = useState<RawVideo | null>(null);
+  const [editDriveLinks, setEditDriveLinks] = useState<string[]>([]);
+  const [viewDeliveredVideo, setViewDeliveredVideo] = useState<RawVideo | null>(null);
+  const [deliveredVideos, setDeliveredVideos] = useState<any[]>([]);
 
   // ---------- Fetch ----------
   const { data: rawVideos = [], isLoading } = useQuery({
