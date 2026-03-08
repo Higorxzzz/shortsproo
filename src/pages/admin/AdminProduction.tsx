@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,754 +7,634 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import {
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Clock,
+  Download,
   Edit3,
   ExternalLink,
   Film,
-  Filter,
+  Inbox,
   Link2,
   Loader2,
-  MessageSquare,
   Package,
+  Play,
   RefreshCw,
   Search,
   Send,
-  Sparkles,
-  AlertCircle,
   Trash2,
-  Pencil,
+  User,
 } from "lucide-react";
-import TaskComments from "@/components/TaskComments";
-import AddVideoLinkDialog from "@/components/AddVideoLinkDialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ---------- Types ----------
-type TaskWithUser = {
+type RawVideo = {
   id: string;
   user_id: string;
-  task_date: string;
-  task_number: number;
-  status: string;
-  video_id: string | null;
-  completed_at: string | null;
-  completed_by: string | null;
+  title: string;
   notes: string | null;
+  status: string;
+  file_path: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  created_at: string;
+  // joined
   user_name: string | null;
   user_email: string | null;
   plan_name: string | null;
-  shorts_per_day: number;
-  plan_price: number;
   youtube_channel: string | null;
-  country: string | null;
-  language: string | null;
-  video_title: string | null;
-  video_drive_link: string | null;
+  // delivery info
+  delivered_video_id: string | null;
+  delivered_drive_link: string | null;
+  delivered_at: string | null;
 };
 
-type UserGroup = {
-  user: TaskWithUser;
-  tasks: TaskWithUser[];
-  completedCount: number;
-  totalCount: number;
-};
+type KanbanColumn = "waiting" | "editing" | "ready" | "delivered";
 
-// ---------- Constants ----------
-const PRIORITY_ORDER: Record<string, number> = { Pro: 1, Growth: 2, Creator: 3, Starter: 4 };
+const COLUMNS: { key: KanbanColumn; labelPt: string; labelEn: string; icon: typeof Clock; colorClass: string; bgClass: string }[] = [
+  { key: "waiting", labelPt: "Novos Vídeos", labelEn: "New Videos", icon: Inbox, colorClass: "text-yellow-500", bgClass: "bg-yellow-500/10 border-yellow-500/20" },
+  { key: "editing", labelPt: "Editando", labelEn: "Editing", icon: Edit3, colorClass: "text-orange-500", bgClass: "bg-orange-500/10 border-orange-500/20" },
+  { key: "ready", labelPt: "Pronto p/ Entrega", labelEn: "Ready to Deliver", icon: Package, colorClass: "text-blue-500", bgClass: "bg-blue-500/10 border-blue-500/20" },
+  { key: "delivered", labelPt: "Entregue", labelEn: "Delivered", icon: CheckCircle2, colorClass: "text-primary", bgClass: "bg-primary/10 border-primary/20" },
+];
 
-const STATUS_FLOW = ["pending", "editing", "ready", "completed"] as const;
-type TaskStatus = (typeof STATUS_FLOW)[number];
-
-const STATUS_CONFIG: Record<
-  TaskStatus,
-  { labelPt: string; labelEn: string; icon: typeof Clock; colorClass: string; bgClass: string }
-> = {
-  pending: {
-    labelPt: "Pendente",
-    labelEn: "Pending",
-    icon: Clock,
-    colorClass: "text-muted-foreground",
-    bgClass: "bg-muted/50 border-border",
-  },
-  editing: {
-    labelPt: "Editando",
-    labelEn: "Editing",
-    icon: Edit3,
-    colorClass: "text-orange-500",
-    bgClass: "bg-orange-500/5 border-orange-500/20",
-  },
-  ready: {
-    labelPt: "Pronto",
-    labelEn: "Ready",
-    icon: Package,
-    colorClass: "text-blue-500",
-    bgClass: "bg-blue-500/5 border-blue-500/20",
-  },
-  completed: {
-    labelPt: "Entregue",
-    labelEn: "Delivered",
-    icon: CheckCircle2,
-    colorClass: "text-primary",
-    bgClass: "bg-primary/5 border-primary/20",
-  },
-};
-
-const PRIORITY_CONFIG: Record<string, { labelPt: string; labelEn: string; colorClass: string }> = {
-  Pro: { labelPt: "Alta", labelEn: "High", colorClass: "bg-destructive/10 text-destructive border-destructive/20" },
-  Growth: { labelPt: "Média", labelEn: "Medium", colorClass: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
-  Creator: { labelPt: "Normal", labelEn: "Normal", colorClass: "bg-accent text-accent-foreground" },
-  Starter: { labelPt: "Normal", labelEn: "Normal", colorClass: "bg-muted text-muted-foreground" },
-};
+function extractDriveFileId(url: string): string | null {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 // ---------- Component ----------
 const AdminProduction = () => {
   const { t } = useLanguage();
-  const { user, teamRole } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isPt = t.language === "pt";
 
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [planFilter, setPlanFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<string>("priority");
-  const [showOnlyPending, setShowOnlyPending] = useState(false);
-  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [uploadTask, setUploadTask] = useState<TaskWithUser | null>(null);
+  const [deliverDialog, setDeliverDialog] = useState<RawVideo | null>(null);
+  const [driveLink, setDriveLink] = useState("");
 
-  // ---------- Query ----------
-  const { data: tasks, isLoading } = useQuery({
-    queryKey: ["production-tasks"],
+  // ---------- Fetch all raw videos with user info ----------
+  const { data: rawVideos = [], isLoading } = useQuery({
+    queryKey: ["kanban-raw-videos"],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data: taskRows, error: taskError } = await supabase
-        .from("tasks")
+      const { data: videos, error } = await supabase
+        .from("raw_videos")
         .select("*")
-        .eq("task_date", today)
         .order("created_at", { ascending: true });
-      if (taskError) throw taskError;
-      if (!taskRows?.length) return [];
+      if (error) throw error;
+      if (!videos?.length) return [];
 
-      const userIds = [...new Set(taskRows.map((t) => t.user_id))];
+      const userIds = [...new Set(videos.map((v) => v.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, name, email, plan_id, youtube_channel, country, language")
+        .select("id, name, email, plan_id, youtube_channel")
         .in("id", userIds);
-      const { data: plans } = await supabase.from("plans").select("id, name, shorts_per_day, price");
+      const { data: plans } = await supabase.from("plans").select("id, name");
 
-      const videoIds = taskRows.map((t) => t.video_id).filter(Boolean) as string[];
-      const videoMap = new Map<string, { title: string; drive_link: string }>();
-      if (videoIds.length > 0) {
-        const { data: videos } = await supabase
-          .from("videos")
-          .select("id, title, drive_link")
-          .in("id", videoIds);
-        (videos || []).forEach((v) => videoMap.set(v.id, { title: v.title, drive_link: v.drive_link }));
-      }
+      // Check which raw_videos have been delivered (have a matching video entry)
+      // We match by user_id and look for videos created after the raw video
+      const { data: deliveredVideos } = await supabase
+        .from("videos")
+        .select("id, user_id, drive_link, uploaded_at")
+        .in("user_id", userIds);
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       const planMap = new Map((plans || []).map((p) => [p.id, p]));
 
-      return taskRows.map((task) => {
-        const profile = profileMap.get(task.user_id);
+      return videos.map((v) => {
+        const profile = profileMap.get(v.user_id);
         const plan = profile?.plan_id ? planMap.get(profile.plan_id) : null;
-        const video = task.video_id ? videoMap.get(task.video_id) : null;
+        // Find delivered video for this raw video (matched by notes containing raw video id or by status)
+        const delivered = v.status === "completed"
+          ? (deliveredVideos || []).find(
+              (dv) => dv.user_id === v.user_id && new Date(dv.uploaded_at) >= new Date(v.created_at)
+            )
+          : null;
+
         return {
-          ...task,
+          ...v,
           user_name: profile?.name || null,
           user_email: profile?.email || null,
           plan_name: plan?.name || null,
-          shorts_per_day: plan?.shorts_per_day || 0,
-          plan_price: plan?.price || 0,
           youtube_channel: profile?.youtube_channel || null,
-          country: profile?.country || null,
-          language: profile?.language || null,
-          video_title: video?.title || null,
-          video_drive_link: video?.drive_link || null,
-        } as TaskWithUser;
+          delivered_video_id: delivered?.id || null,
+          delivered_drive_link: delivered?.drive_link || null,
+          delivered_at: delivered?.uploaded_at || null,
+        } as RawVideo;
       });
     },
   });
 
-  // ---------- Generate tasks ----------
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc("generate_daily_tasks");
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
-      toast({
-        title: isPt ? "Tarefas geradas" : "Tasks generated",
-        description: `${count} ${isPt ? "tarefas criadas" : "tasks created"}`,
-      });
-    },
-    onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
-  });
-
-  // ---------- Update task status ----------
+  // ---------- Mutations ----------
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ taskId, newStatus }: { taskId: string; newStatus: string }) => {
-      const updates: Record<string, any> = { status: newStatus };
-      if (newStatus === "completed") {
-        updates.completed_at = new Date().toISOString();
-        updates.completed_by = user?.id;
-      }
-      const { error } = await supabase.from("tasks").update(updates).eq("id", taskId);
+    mutationFn: async ({ videoId, status }: { videoId: string; status: string }) => {
+      const { error } = await supabase
+        .from("raw_videos")
+        .update({ status })
+        .eq("id", videoId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
-    },
-    onError: () => toast({ title: isPt ? "Erro ao atualizar" : "Update error", variant: "destructive" }),
-  });
-
-  // ---------- Delete delivered video & reset task ----------
-  const deleteVideoMutation = useMutation({
-    mutationFn: async ({ taskId, videoId }: { taskId: string; videoId: string }) => {
-      // Reset task back to ready
-      await supabase
-        .from("tasks")
-        .update({ status: "ready", video_id: null, completed_at: null, completed_by: null })
-        .eq("id", taskId);
-      // Delete video
-      await supabase.from("videos").delete().eq("id", videoId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["videos"] });
-      toast({ title: isPt ? "Vídeo removido" : "Video removed" });
+      queryClient.invalidateQueries({ queryKey: ["kanban-raw-videos"] });
     },
     onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
 
-  // ---------- Group & filter ----------
-  const grouped = useMemo<UserGroup[]>(() => {
-    if (!tasks) return [];
-    const map = new Map<string, UserGroup>();
-    for (const task of tasks) {
-      if (!map.has(task.user_id)) {
-        map.set(task.user_id, { user: task, tasks: [], completedCount: 0, totalCount: 0 });
-      }
-      const group = map.get(task.user_id)!;
-      group.tasks.push(task);
-      group.totalCount++;
-      if (task.status === "completed") group.completedCount++;
-    }
-    return Array.from(map.values());
-  }, [tasks]);
+  const deliverMutation = useMutation({
+    mutationFn: async ({ rawVideo, link }: { rawVideo: RawVideo; link: string }) => {
+      const fileId = extractDriveFileId(link);
+      // Insert final video
+      const { error: videoErr } = await supabase.from("videos").insert({
+        user_id: rawVideo.user_id,
+        title: rawVideo.title,
+        drive_link: link,
+        drive_file_id: fileId,
+        status: "new",
+      });
+      if (videoErr) throw videoErr;
 
-  const filtered = useMemo(() => {
-    let result = grouped;
+      // Mark raw video as completed
+      const { error: rawErr } = await supabase
+        .from("raw_videos")
+        .update({ status: "completed" })
+        .eq("id", rawVideo.id);
+      if (rawErr) throw rawErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kanban-raw-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      toast({ title: isPt ? "Vídeo entregue!" : "Video delivered!" });
+      setDeliverDialog(null);
+      setDriveLink("");
+    },
+    onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
+  });
 
-    if (planFilter !== "all") result = result.filter((g) => g.user.plan_name === planFilter);
-    if (showOnlyPending) result = result.filter((g) => g.completedCount < g.totalCount);
-    if (statusFilter !== "all") {
-      result = result.filter((g) => g.tasks.some((t) => t.status === statusFilter));
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (g) =>
-          (g.user.user_name || "").toLowerCase().includes(q) ||
-          (g.user.user_email || "").toLowerCase().includes(q) ||
-          (g.user.youtube_channel || "").toLowerCase().includes(q)
-      );
-    }
+  const deleteRawFileMutation = useMutation({
+    mutationFn: async (video: RawVideo) => {
+      if (video.file_path) {
+        await supabase.storage.from("raw-videos").remove([video.file_path]);
+      }
+      await supabase
+        .from("raw_videos")
+        .update({ file_path: null, file_name: null, file_size: null })
+        .eq("id", video.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kanban-raw-videos"] });
+      toast({ title: isPt ? "Arquivo bruto removido" : "Raw file removed" });
+    },
+  });
 
-    // Sort
-    result = [...result].sort((a, b) => {
-      if (sortBy === "priority") {
-        const pa = PRIORITY_ORDER[a.user.plan_name || ""] || 99;
-        const pb = PRIORITY_ORDER[b.user.plan_name || ""] || 99;
-        if (pa !== pb) return pa - pb;
-        return (a.completedCount / a.totalCount) - (b.completedCount / b.totalCount);
+  const handleDownload = async (video: RawVideo) => {
+    if (!video.file_path) return;
+    const { data } = await supabase.storage
+      .from("raw-videos")
+      .createSignedUrl(video.file_path, 3600);
+    if (data?.signedUrl) {
+      window.location.assign(data.signedUrl);
+    }
+  };
+
+  // ---------- Organize into columns ----------
+  const columns = useMemo(() => {
+    const result: Record<KanbanColumn, RawVideo[]> = {
+      waiting: [],
+      editing: [],
+      ready: [],
+      delivered: [],
+    };
+
+    const q = searchQuery.toLowerCase();
+
+    for (const v of rawVideos) {
+      // Search filter
+      if (q) {
+        const match =
+          (v.user_name || "").toLowerCase().includes(q) ||
+          (v.user_email || "").toLowerCase().includes(q) ||
+          v.title.toLowerCase().includes(q);
+        if (!match) continue;
       }
-      if (sortBy === "pending") {
-        const pendA = a.totalCount - a.completedCount;
-        const pendB = b.totalCount - b.completedCount;
-        return pendB - pendA;
+
+      if (v.status === "completed") {
+        result.delivered.push(v);
+      } else if (v.status === "editing") {
+        result.editing.push(v);
+      } else if (v.status === "ready") {
+        result.ready.push(v);
+      } else {
+        result.waiting.push(v);
       }
-      return 0;
-    });
+    }
 
     return result;
-  }, [grouped, planFilter, showOnlyPending, statusFilter, searchQuery, sortBy]);
+  }, [rawVideos, searchQuery]);
 
-  // Auto-expand all users initially
-  useEffect(() => {
-    if (grouped.length > 0 && expandedUsers.size === 0) {
-      setExpandedUsers(new Set(grouped.map((g) => g.user.user_id)));
-    }
-  }, [grouped]);
+  // Stats
+  const todayStr = new Date().toISOString().split("T")[0];
+  const deliveredToday = columns.delivered.filter(
+    (v) => v.delivered_at?.startsWith(todayStr) || v.created_at.startsWith(todayStr)
+  ).length;
+  const totalPending = columns.waiting.length + columns.editing.length + columns.ready.length;
 
-  // ---------- Stats ----------
-  const totalTasks = tasks?.length || 0;
-  const statusCounts = useMemo(() => {
-    const counts = { pending: 0, editing: 0, ready: 0, completed: 0 };
-    (tasks || []).forEach((t) => {
-      if (t.status in counts) counts[t.status as TaskStatus]++;
-      else counts.pending++;
-    });
-    return counts;
-  }, [tasks]);
-
-  const uniquePlans = [...new Set(grouped.map((g) => g.user.plan_name).filter(Boolean))];
-  const progressPercent = totalTasks > 0 ? Math.round((statusCounts.completed / totalTasks) * 100) : 0;
-
-  const toggleUser = (userId: string) => {
-    const next = new Set(expandedUsers);
-    if (next.has(userId)) next.delete(userId);
-    else next.add(userId);
-    setExpandedUsers(next);
-  };
-
-  const getNextStatus = (current: string): TaskStatus | null => {
-    const idx = STATUS_FLOW.indexOf(current as TaskStatus);
-    if (idx < 0 || idx >= STATUS_FLOW.length - 1) return null;
-    return STATUS_FLOW[idx + 1];
-  };
+  const fileId = extractDriveFileId(driveLink);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold">
-            {isPt ? "Fila de Produção" : "Production Queue"}
+            {isPt ? "Painel de Produção" : "Production Board"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isPt ? "Gerencie as entregas diárias de shorts" : "Manage daily shorts deliveries"}
+            {isPt ? "Kanban de edição de shorts" : "Shorts editing kanban"}
           </p>
         </div>
-        {(teamRole === "admin" || teamRole === "manager") && (
-          <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-            {generateMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            {isPt ? "Gerar Tarefas de Hoje" : "Generate Today's Tasks"}
-          </Button>
-        )}
-      </div>
-
-      {/* Stats cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Total */}
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-primary/10 p-2.5">
-              <Film className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{totalTasks}</p>
-              <p className="text-[11px] text-muted-foreground">{isPt ? "Total" : "Total"}</p>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Status cards */}
-        {(["pending", "editing", "ready", "completed"] as TaskStatus[]).map((status) => {
-          const cfg = STATUS_CONFIG[status];
-          const Icon = cfg.icon;
-          return (
-            <Card
-              key={status}
-              className={`cursor-pointer transition-colors hover:border-foreground/20 ${statusFilter === status ? "ring-2 ring-primary/30" : ""}`}
-              onClick={() => setStatusFilter(statusFilter === status ? "all" : status)}
-            >
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className={`rounded-lg p-2.5 ${cfg.bgClass}`}>
-                  <Icon className={`h-5 w-5 ${cfg.colorClass}`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{statusCounts[status]}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {isPt ? cfg.labelPt : cfg.labelEn}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Overall progress */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium text-muted-foreground">
-              {isPt ? "Progresso do dia" : "Daily progress"}
-            </span>
-            <span className="font-bold">
-              {statusCounts.completed}/{totalTasks} — {progressPercent}%
-            </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+            <Send className="h-4 w-4 text-primary" />
+            <span className="font-bold">{deliveredToday}</span>
+            <span className="text-muted-foreground">{isPt ? "entregues hoje" : "delivered today"}</span>
           </div>
-          <Progress value={progressPercent} className="h-2.5" />
-        </CardContent>
-      </Card>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={isPt ? "Buscar cliente..." : "Search client..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={planFilter} onValueChange={setPlanFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder={isPt ? "Plano" : "Plan"} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{isPt ? "Todos os planos" : "All plans"}</SelectItem>
-            {uniquePlans.map((p) => (
-              <SelectItem key={p} value={p!}>
-                {p}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="priority">{isPt ? "Prioridade" : "Priority"}</SelectItem>
-            <SelectItem value="pending">{isPt ? "Mais pendentes" : "Most pending"}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          variant={showOnlyPending ? "default" : "outline"}
-          size="sm"
-          onClick={() => setShowOnlyPending(!showOnlyPending)}
-          className="gap-1.5"
-        >
-          <Filter className="h-3.5 w-3.5" />
-          {isPt ? "Só pendentes" : "Pending only"}
-        </Button>
-        <div className="ml-auto flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpandedUsers(new Set(grouped.map((g) => g.user.user_id)))}
-          >
-            {isPt ? "Expandir tudo" : "Expand all"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setExpandedUsers(new Set())}>
-            {isPt ? "Recolher tudo" : "Collapse all"}
-          </Button>
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+            <Clock className="h-4 w-4 text-orange-500" />
+            <span className="font-bold">{totalPending}</span>
+            <span className="text-muted-foreground">{isPt ? "pendentes" : "pending"}</span>
+          </div>
         </div>
       </div>
 
-      {/* Task list */}
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={isPt ? "Buscar por cliente ou título..." : "Search by client or title..."}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Kanban Board */}
       {isLoading ? (
-        <div className="flex h-40 items-center justify-center">
+        <div className="flex h-60 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <AlertCircle className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              {isPt
-                ? "Nenhuma tarefa encontrada. Clique em 'Gerar Tarefas de Hoje'."
-                : "No tasks found. Click 'Generate Today's Tasks'."}
-            </p>
-          </CardContent>
-        </Card>
       ) : (
-        <div className="space-y-3">
-          <AnimatePresence mode="popLayout">
-            {filtered.map((group) => {
-              const isExpanded = expandedUsers.has(group.user.user_id);
-              const allDone = group.completedCount === group.totalCount;
-              const userProgress = Math.round((group.completedCount / group.totalCount) * 100);
-              const priorityCfg = PRIORITY_CONFIG[group.user.plan_name || ""] || PRIORITY_CONFIG.Starter;
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          {COLUMNS.map((col) => {
+            const items = columns[col.key];
+            const Icon = col.icon;
 
-              return (
-                <motion.div
-                  key={group.user.user_id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                >
-                  <Card className={`overflow-hidden transition-colors ${allDone ? "border-primary/30" : ""}`}>
-                    {/* User header - clickable */}
-                    <button
-                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-muted/30 transition-colors"
-                      onClick={() => toggleUser(group.user.user_id)}
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      )}
+            return (
+              <div key={col.key} className="flex flex-col">
+                {/* Column header */}
+                <div className={`flex items-center gap-2 rounded-t-xl border px-4 py-3 ${col.bgClass}`}>
+                  <Icon className={`h-4.5 w-4.5 ${col.colorClass}`} />
+                  <span className="font-semibold text-sm">
+                    {isPt ? col.labelPt : col.labelEn}
+                  </span>
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    {items.length}
+                  </Badge>
+                </div>
 
-                      {/* User info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm truncate">
-                            {group.user.user_name || group.user.user_email || "—"}
-                          </span>
-                          {group.user.youtube_channel && (
-                            <a
-                              href={
-                                group.user.youtube_channel.startsWith("http")
-                                  ? group.user.youtube_channel
-                                  : `https://www.youtube.com/channel/${group.user.youtube_channel}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[11px] text-muted-foreground">
-                            {group.user.plan_name || "—"} · {group.totalCount} shorts/dia
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Right side badges & progress */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge className={`text-[10px] ${priorityCfg.colorClass}`}>
-                          {isPt ? priorityCfg.labelPt : priorityCfg.labelEn}
-                        </Badge>
-                        <div className="flex items-center gap-2 min-w-[120px]">
-                          <Progress value={userProgress} className="h-1.5 flex-1" />
-                          <span className={`text-xs font-bold ${allDone ? "text-primary" : "text-muted-foreground"}`}>
-                            {group.completedCount}/{group.totalCount}
-                          </span>
-                        </div>
-                        {allDone && (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
-                            <Sparkles className="mr-1 h-3 w-3" />
-                            {isPt ? "Completo" : "Done"}
-                          </Badge>
-                        )}
-                      </div>
-                    </button>
-
-                    {/* Expanded task cards */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="border-t px-4 py-3 space-y-2">
-                            {group.tasks.map((task) => {
-                              const statusKey = (STATUS_FLOW.includes(task.status as TaskStatus)
-                                ? task.status
-                                : "pending") as TaskStatus;
-                              const cfg = STATUS_CONFIG[statusKey];
-                              const StatusIcon = cfg.icon;
-                              const nextStatus = getNextStatus(statusKey);
-                              const isCommentsOpen = expandedComments.has(task.id);
-
-                              return (
-                                <div key={task.id}>
-                                  <div
-                                    className={`rounded-lg border p-3 transition-colors ${cfg.bgClass}`}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      {/* Status icon */}
-                                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${cfg.bgClass}`}>
-                                        {statusKey === "editing" ? (
-                                          <Loader2 className={`h-4 w-4 animate-spin ${cfg.colorClass}`} />
-                                        ) : (
-                                          <StatusIcon className={`h-4 w-4 ${cfg.colorClass}`} />
-                                        )}
-                                      </div>
-
-                                      {/* Task info */}
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-semibold text-sm">
-                                            Short {task.task_number}
-                                          </span>
-                                          <Badge
-                                            variant="outline"
-                                            className={`text-[10px] border-0 ${cfg.colorClass} ${cfg.bgClass}`}
-                                          >
-                                            {isPt ? cfg.labelPt : cfg.labelEn}
-                                          </Badge>
-                                        </div>
-                                        {/* Delivered video info */}
-                                        {statusKey === "completed" && task.video_drive_link && (
-                                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                            <Film className="h-3 w-3 shrink-0" />
-                                            <span className="truncate">
-                                              {task.video_title || "Video"}
-                                            </span>
-                                            <a
-                                              href={task.video_drive_link}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-primary hover:underline shrink-0"
-                                            >
-                                              <ExternalLink className="h-3 w-3" />
-                                            </a>
-                                            {task.completed_at && (
-                                              <span className="text-muted-foreground/60 shrink-0">
-                                                {new Date(task.completed_at).toLocaleTimeString([], {
-                                                  hour: "2-digit",
-                                                  minute: "2-digit",
-                                                })}
-                                              </span>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Actions */}
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {/* Comments */}
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-8 w-8 p-0"
-                                          onClick={() => {
-                                            const next = new Set(expandedComments);
-                                            if (isCommentsOpen) next.delete(task.id);
-                                            else next.add(task.id);
-                                            setExpandedComments(next);
-                                          }}
-                                        >
-                                          <MessageSquare className="h-3.5 w-3.5" />
-                                        </Button>
-
-                                        {/* Next status button */}
-                                        {nextStatus && nextStatus !== "completed" && (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1 text-xs"
-                                            disabled={updateStatusMutation.isPending}
-                                            onClick={() =>
-                                              updateStatusMutation.mutate({
-                                                taskId: task.id,
-                                                newStatus: nextStatus,
-                                              })
-                                            }
-                                          >
-                                            {STATUS_CONFIG[nextStatus].icon && (() => {
-                                              const NextIcon = STATUS_CONFIG[nextStatus].icon;
-                                              return <NextIcon className={`h-3 w-3 ${STATUS_CONFIG[nextStatus].colorClass}`} />;
-                                            })()}
-                                            {isPt
-                                              ? STATUS_CONFIG[nextStatus].labelPt
-                                              : STATUS_CONFIG[nextStatus].labelEn}
-                                          </Button>
-                                        )}
-
-                                        {/* Deliver link button (only when not completed) */}
-                                        {statusKey !== "completed" && (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1 text-xs"
-                                            onClick={() => setUploadTask(task)}
-                                          >
-                                            <Link2 className="h-3 w-3" />
-                                            {isPt ? "Entregar" : "Deliver"}
-                                          </Button>
-                                        )}
-
-                                        {/* Edit delivered video (re-deliver) */}
-                                        {statusKey === "completed" && task.video_id && (
-                                          <>
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              className="h-8 w-8 p-0"
-                                              onClick={() => {
-                                                // Delete current video then open dialog to re-add
-                                                deleteVideoMutation.mutate(
-                                                  { taskId: task.id, videoId: task.video_id! },
-                                                  {
-                                                    onSuccess: () => setUploadTask(task),
-                                                  }
-                                                );
-                                              }}
-                                              title={isPt ? "Editar link" : "Edit link"}
-                                            >
-                                              <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                              disabled={deleteVideoMutation.isPending}
-                                              onClick={() =>
-                                                deleteVideoMutation.mutate({
-                                                  taskId: task.id,
-                                                  videoId: task.video_id!,
-                                                })
-                                              }
-                                              title={isPt ? "Remover vídeo" : "Remove video"}
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <TaskComments taskId={task.id} isOpen={isCommentsOpen} />
-                                </div>
-                              );
-                            })}
+                {/* Column body */}
+                <ScrollArea className="flex-1 rounded-b-xl border border-t-0 bg-muted/20 p-2 min-h-[300px] max-h-[calc(100vh-320px)]">
+                  <div className="space-y-2">
+                    <AnimatePresence mode="popLayout">
+                      {items.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-center">
+                          <div className="mb-2 rounded-full bg-muted p-3">
+                            <Icon className="h-5 w-5 text-muted-foreground/40" />
                           </div>
-                        </motion.div>
+                          <p className="text-xs text-muted-foreground">
+                            {isPt ? "Nenhum vídeo" : "No videos"}
+                          </p>
+                        </div>
+                      ) : (
+                        items.map((video) => (
+                          <KanbanCard
+                            key={video.id}
+                            video={video}
+                            column={col.key}
+                            isPt={isPt}
+                            onStartEditing={() =>
+                              updateStatusMutation.mutate({ videoId: video.id, status: "editing" })
+                            }
+                            onMarkReady={() =>
+                              updateStatusMutation.mutate({ videoId: video.id, status: "ready" })
+                            }
+                            onDeliver={() => {
+                              setDeliverDialog(video);
+                              setDriveLink("");
+                            }}
+                            onDownload={() => handleDownload(video)}
+                            onDeleteRawFile={() => {
+                              if (confirm(isPt ? "Remover arquivo bruto?" : "Remove raw file?")) {
+                                deleteRawFileMutation.mutate(video);
+                              }
+                            }}
+                            isUpdating={updateStatusMutation.isPending}
+                          />
+                        ))
                       )}
                     </AnimatePresence>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Add Video Link Dialog */}
-      {uploadTask && (
-        <AddVideoLinkDialog
-          open={!!uploadTask}
-          onOpenChange={(open) => !open && setUploadTask(null)}
-          clientUserId={uploadTask.user_id}
-          clientName={uploadTask.user_name || uploadTask.user_email || "—"}
-          taskId={uploadTask.id}
-          taskNumber={uploadTask.task_number}
-          planName={uploadTask.plan_name || undefined}
-        />
-      )}
+      {/* Deliver Dialog */}
+      <Dialog open={!!deliverDialog} onOpenChange={(o) => !o && setDeliverDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              {isPt ? "Publicar para cliente" : "Publish to client"}
+            </DialogTitle>
+          </DialogHeader>
+          {deliverDialog && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+                <p><strong>{isPt ? "Cliente:" : "Client:"}</strong> {deliverDialog.user_name || deliverDialog.user_email}</p>
+                <p><strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {deliverDialog.title}</p>
+                {deliverDialog.plan_name && <p><strong>{isPt ? "Plano:" : "Plan:"}</strong> {deliverDialog.plan_name}</p>}
+              </div>
+
+              <div>
+                <Label>{isPt ? "Link do vídeo final (Google Drive)" : "Final video link (Google Drive)"}</Label>
+                <Input
+                  value={driveLink}
+                  onChange={(e) => setDriveLink(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/.../view"
+                  className="mt-1"
+                />
+                {driveLink && !fileId && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {isPt ? "Link inválido" : "Invalid link"}
+                  </p>
+                )}
+                {fileId && (
+                  <div className="mt-3 rounded-lg border overflow-hidden">
+                    <iframe
+                      src={`https://drive.google.com/file/d/${fileId}/preview`}
+                      className="w-full aspect-[9/16] max-h-[200px]"
+                      allow="autoplay"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeliverDialog(null)}>
+              {isPt ? "Cancelar" : "Cancel"}
+            </Button>
+            <Button
+              disabled={!fileId || deliverMutation.isPending}
+              onClick={() => deliverDialog && deliverMutation.mutate({ rawVideo: deliverDialog, link: driveLink })}
+            >
+              {deliverMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {isPt ? "Publicar" : "Publish"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+// ---------- Kanban Card ----------
+function KanbanCard({
+  video,
+  column,
+  isPt,
+  onStartEditing,
+  onMarkReady,
+  onDeliver,
+  onDownload,
+  onDeleteRawFile,
+  isUpdating,
+}: {
+  video: RawVideo;
+  column: KanbanColumn;
+  isPt: boolean;
+  onStartEditing: () => void;
+  onMarkReady: () => void;
+  onDeliver: () => void;
+  onDownload: () => void;
+  onDeleteRawFile: () => void;
+  isUpdating: boolean;
+}) {
+  const timeAgo = getTimeAgo(video.created_at, isPt);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+    >
+      {/* Client info */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted">
+          <User className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">
+            {video.user_name || video.user_email?.split("@")[0] || "—"}
+          </p>
+          <div className="flex items-center gap-1.5">
+            {video.plan_name && (
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                {video.plan_name}
+              </Badge>
+            )}
+            <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
+          </div>
+        </div>
+        {video.youtube_channel && (
+          <a
+            href={video.youtube_channel.startsWith("http") ? video.youtube_channel : `https://youtube.com/channel/${video.youtube_channel}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+
+      {/* Video title */}
+      <p className="text-xs font-medium mb-1.5 line-clamp-2">{video.title}</p>
+      {video.notes && (
+        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2">{video.notes}</p>
+      )}
+
+      {/* File info */}
+      {video.file_path && (
+        <div className="flex items-center gap-2 mb-2 text-[11px] text-muted-foreground">
+          <Film className="h-3 w-3 shrink-0" />
+          <span className="truncate">{video.file_name || "video"}</span>
+          {video.file_size && (
+            <span className="shrink-0">{(video.file_size / 1024 / 1024).toFixed(1)} MB</span>
+          )}
+        </div>
+      )}
+
+      {/* Delivered video iframe */}
+      {column === "delivered" && video.delivered_drive_link && (() => {
+        const fId = extractDriveFileId(video.delivered_drive_link);
+        return fId ? (
+          <div className="mb-2 rounded-lg border overflow-hidden">
+            <iframe
+              src={`https://drive.google.com/file/d/${fId}/preview`}
+              className="w-full aspect-[9/16] max-h-[180px]"
+              allow="autoplay"
+            />
+          </div>
+        ) : null;
+      })()}
+
+      {/* Actions per column */}
+      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t">
+        {column === "waiting" && (
+          <>
+            {video.file_path && (
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onDownload}>
+                <Download className="h-3 w-3" />
+                {isPt ? "Baixar" : "Download"}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              className="h-7 gap-1 text-xs ml-auto"
+              disabled={isUpdating}
+              onClick={onStartEditing}
+            >
+              <Play className="h-3 w-3" />
+              {isPt ? "Começar edição" : "Start editing"}
+            </Button>
+          </>
+        )}
+
+        {column === "editing" && (
+          <>
+            {video.file_path && (
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onDownload}>
+                <Download className="h-3 w-3" />
+              </Button>
+            )}
+            <Button
+              size="sm"
+              className="h-7 gap-1 text-xs ml-auto"
+              disabled={isUpdating}
+              onClick={onMarkReady}
+            >
+              <Package className="h-3 w-3" />
+              {isPt ? "Marcar pronto" : "Mark ready"}
+            </Button>
+          </>
+        )}
+
+        {column === "ready" && (
+          <>
+            {video.file_path && (
+              <>
+                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onDownload}>
+                  <Download className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={onDeleteRawFile}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </>
+            )}
+            <Button
+              size="sm"
+              className="h-7 gap-1 text-xs ml-auto"
+              onClick={onDeliver}
+            >
+              <Send className="h-3 w-3" />
+              {isPt ? "Publicar" : "Publish"}
+            </Button>
+          </>
+        )}
+
+        {column === "delivered" && (
+          <>
+            {video.file_path && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+                onClick={onDeleteRawFile}
+              >
+                <Trash2 className="h-3 w-3" />
+                {isPt ? "Apagar bruto" : "Delete raw"}
+              </Button>
+            )}
+            {video.delivered_drive_link && (
+              <a
+                href={video.delivered_drive_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto"
+              >
+                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs">
+                  <ExternalLink className="h-3 w-3" />
+                  Drive
+                </Button>
+              </a>
+            )}
+            {video.delivered_at && (
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(video.delivered_at).toLocaleDateString()}
+              </span>
+            )}
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ---------- Helpers ----------
+function getTimeAgo(dateStr: string, isPt: boolean): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return isPt ? "agora" : "now";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
 
 export default AdminProduction;
