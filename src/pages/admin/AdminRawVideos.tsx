@@ -81,11 +81,11 @@ const AdminRawVideos = () => {
     },
   });
 
-  const markCompleted = useMutation({
-    mutationFn: async (videoId: string) => {
+  const updateStatus = useMutation({
+    mutationFn: async ({ videoId, status }: { videoId: string; status: string }) => {
       const { error } = await supabase
         .from("raw_videos")
-        .update({ status: "completed" })
+        .update({ status })
         .eq("id", videoId);
       if (error) throw error;
     },
@@ -161,10 +161,19 @@ const AdminRawVideos = () => {
                           {new Date(video.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={video.status === "completed" ? "default" : "secondary"} className="text-xs">
-                            {video.status === "completed"
-                              ? (isPt ? "Concluído" : "Completed")
-                              : (isPt ? "Em edição" : "Editing")}
+                          <Badge 
+                            variant={video.status === "completed" ? "default" : "secondary"} 
+                            className={`text-xs ${
+                              video.status === "waiting" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
+                              video.status === "editing" ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
+                              ""
+                            }`}
+                          >
+                            {video.status === "waiting"
+                              ? (isPt ? "Aguardando" : "Waiting")
+                              : video.status === "editing"
+                              ? (isPt ? "Em edição" : "Editing")
+                              : (isPt ? "Concluído" : "Completed")}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -195,15 +204,37 @@ const AdminRawVideos = () => {
                                 </Button>
                               </>
                             )}
+                            {video.status === "waiting" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs text-orange-600"
+                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "editing" })}
+                              >
+                                <Film className="mr-1 h-3 w-3" />
+                                {isPt ? "Editar" : "Edit"}
+                              </Button>
+                            )}
                             {video.status === "editing" && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 text-xs"
-                                onClick={() => markCompleted.mutate(video.id)}
+                                className="h-7 text-xs text-emerald-600"
+                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "completed" })}
                               >
                                 <CheckCircle2 className="mr-1 h-3 w-3" />
                                 {isPt ? "Concluir" : "Complete"}
+                              </Button>
+                            )}
+                            {video.status !== "waiting" && video.status !== "completed" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs text-yellow-600"
+                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "waiting" })}
+                              >
+                                <Clock className="mr-1 h-3 w-3" />
+                                {isPt ? "Aguardar" : "Wait"}
                               </Button>
                             )}
                             {!hasFile && video.status === "completed" && (
