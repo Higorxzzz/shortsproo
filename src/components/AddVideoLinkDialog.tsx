@@ -44,7 +44,7 @@ const AddVideoLinkDialog = ({
       const fileId = extractDriveFileId(driveLink);
       const { error } = await supabase.from("videos").insert({
         user_id: clientUserId,
-        title: videoTitle,
+        title: `Short ${taskNumber || 1}`,
         drive_link: driveLink,
         drive_file_id: fileId,
         status: "new",
