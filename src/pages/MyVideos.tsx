@@ -139,85 +139,70 @@ const MyVideos = () => {
                 <Calendar className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">{isPt ? "Entregas de Hoje" : "Today's Deliveries"}</CardTitle>
               </div>
-              {todayTotal > 0 && (
-                <Badge variant={todayCompleted === todayTotal ? "default" : "secondary"} className="text-xs">
-                  {todayCompleted}/{todayTotal} {isPt ? "concluídas" : "completed"}
+              {todayDeliveredCount > 0 && (
+                <Badge variant={todayDownloadedCount === todayDeliveredCount ? "default" : "secondary"} className="text-xs">
+                  {todayDownloadedCount}/{todayDeliveredCount} {isPt ? "baixados" : "downloaded"}
                 </Badge>
               )}
             </div>
           </CardHeader>
           <CardContent>
-            {todayTotal > 0 ? (
+            {todayDeliveredCount > 0 ? (
               <>
                 <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                   <span>{isPt ? "Progresso" : "Progress"}</span>
-                  <span>{todayProgress}%</span>
+                  <span>{todayDeliveryProgress}%</span>
                 </div>
-                <Progress value={todayProgress} className="mb-5 h-2" />
+                <Progress value={todayDeliveryProgress} className="mb-5 h-2" />
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {todayTasks.map((task: any, i: number) => {
-                    const video = task.video_id
-                      ? todayVideos.find((v: any) => v.id === task.video_id) || videos.find((v: any) => v.id === task.video_id)
-                      : null;
-                    return (
-                      <motion.div
-                        key={task.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.05 }}
-                        className={`group rounded-xl border p-4 transition-all duration-200 hover:shadow-sm ${
-                          task.status === "completed"
-                            ? "border-primary/30 bg-primary/5"
-                            : "border-border bg-card"
-                        }`}
-                      >
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-sm font-semibold">Short {task.task_number}</span>
-                          {task.status === "completed" ? (
-                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </div>
-                        {video ? (
-                          <div>
-                            <p className="mb-2 line-clamp-1 text-sm text-muted-foreground">{video.title}</p>
-                            <div className="flex gap-1.5">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 flex-1 text-xs"
-                                onClick={() => {
-                                  const dlUrl = video.drive_file_id
-                                    ? `https://drive.usercontent.google.com/download?id=${video.drive_file_id}&export=download&confirm=t`
-                                    : video.drive_link;
-                                  window.location.assign(dlUrl);
-                                  if (video.status === "new") markDownloaded.mutate(video.id);
-                                }}
-                              >
-                                <Download className="mr-1 h-3 w-3" />
-                                {t.dashboard.download}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2"
-                                onClick={() => setPreviewVideo(video)}
-                              >
-                                <Film className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
+                  {todayVideos.map((video: any, i: number) => (
+                    <motion.div
+                      key={video.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      className={`group rounded-xl border p-4 transition-all duration-200 hover:shadow-sm ${
+                        video.status === "downloaded"
+                          ? "border-primary/30 bg-primary/5"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-semibold">{video.title?.replace(/^.*- /, '') || `Short ${i + 1}`}</span>
+                        {video.status === "downloaded" ? (
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
                         ) : (
-                          <p className="text-xs text-muted-foreground">
-                            {task.status === "completed"
-                              ? (isPt ? "Entregue" : "Delivered")
-                              : (isPt ? "Aguardando produção..." : "Awaiting production...")}
-                          </p>
+                          <Clock className="h-4 w-4 text-muted-foreground" />
                         )}
-                      </motion.div>
-                    );
-                  })}
+                      </div>
+                      <p className="mb-2 line-clamp-1 text-sm text-muted-foreground">{video.title}</p>
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 flex-1 text-xs"
+                          onClick={() => {
+                            const dlUrl = video.drive_file_id
+                              ? `https://drive.usercontent.google.com/download?id=${video.drive_file_id}&export=download&confirm=t`
+                              : video.drive_link;
+                            window.location.assign(dlUrl);
+                            if (video.status === "new") markDownloaded.mutate(video.id);
+                          }}
+                        >
+                          <Download className="mr-1 h-3 w-3" />
+                          {t.dashboard.download}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2"
+                          onClick={() => setPreviewVideo(video)}
+                        >
+                          <Film className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </>
             ) : rawVideos.length > 0 ? (
