@@ -23,7 +23,7 @@ const RawVideoUpload = () => {
   const isPt = (t as any).language === "pt";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [title, setTitle] = useState("");
+  
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
