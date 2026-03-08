@@ -51,18 +51,28 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
         onClick={() => onPreview(video)}
         className="relative block h-44 w-full bg-muted/50 overflow-hidden"
       >
-        {previewUrl ? (
-          <iframe
-            src={previewUrl}
-            className="pointer-events-none h-full w-full"
-            allow="autoplay"
-            allowFullScreen
+        {fileId ? (
+          <img
+            src={`https://drive.google.com/thumbnail?id=${fileId}&sz=w400`}
+            alt={video.title}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).parentElement!.classList.add('flex', 'items-center', 'justify-center');
+              const fallback = document.createElement('span');
+              fallback.className = 'text-muted-foreground/40 text-sm';
+              fallback.textContent = isPt ? 'Sem preview' : 'No preview';
+              (e.target as HTMLImageElement).parentElement!.appendChild(fallback);
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground/40 text-sm">
             {isPt ? "Sem preview" : "No preview"}
           </div>
         )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Film className="h-10 w-10 text-white/80" />
+        </div>
         {video.status === "new" && (
           <Badge className="absolute left-2 top-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 font-semibold shadow-sm">
             NEW
