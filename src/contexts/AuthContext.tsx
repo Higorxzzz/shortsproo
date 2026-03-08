@@ -2,11 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+type TeamRole = "admin" | "manager" | "editor" | null;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isTeamMember: boolean;
+  teamRole: TeamRole;
   signOut: () => Promise<void>;
 }
 
@@ -17,6 +21,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [teamRole, setTeamRole] = useState<TeamRole>(null);
+
+  const isTeamMember = teamRole === "admin" || teamRole === "manager" || teamRole === "editor";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -26,10 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         setTimeout(() => {
-          checkAdminRole(session.user.id);
+          checkRoles(session.user.id);
         }, 0);
       } else {
         setIsAdmin(false);
+        setTeamRole(null);
       }
     });
 
@@ -38,30 +46,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
-        checkAdminRole(session.user.id);
+        checkRoles(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminRole = async (userId: string) => {
+  const checkRoles = async (userId: string) => {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
+      .eq("user_id", userId);
+
+    const roles = (data || []).map((r) => r.role);
+    setIsAdmin(roles.includes("admin"));
+
+    // Set highest team role
+    if (roles.includes("admin")) setTeamRole("admin");
+    else if (roles.includes("manager")) setTeamRole("manager");
+    else if (roles.includes("editor")) setTeamRole("editor");
+    else setTeamRole(null);
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    setTeamRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, isTeamMember, teamRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );
