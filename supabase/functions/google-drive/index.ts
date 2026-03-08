@@ -397,7 +397,7 @@ Deno.serve(async (req) => {
         }
 
         const monthKey = new Date().toISOString().slice(0, 7);
-        let monthFolderId = await findFolder(accessToken, monthKey, clientFolderId);
+        let monthFolderId = await findFolder(accessToken, monthKey, clientFolderId, sharedDriveId);
 
         if (!monthFolderId) {
           monthFolderId = await createFolder(accessToken, monthKey, clientFolderId);
