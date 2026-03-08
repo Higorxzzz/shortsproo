@@ -113,11 +113,10 @@ function validateRoot(meta: DriveMeta): string | null {
  * Validates an existing child folder is still valid (not trashed, correct driveId).
  * Returns true if valid, false if stale/invalid.
  */
-async function isValidChildFolder(token: string, folderId: string, expectedDriveId: string): Promise<boolean> {
+async function isValidChildFolder(token: string, folderId: string, expectedDriveId: string | null): Promise<boolean> {
   try {
     const meta = await getMeta(token, folderId);
     if (meta.trashed || meta.mimeType !== "application/vnd.google-apps.folder") return false;
-    // If we have a shared drive, verify it matches
     if (expectedDriveId && meta.driveId !== expectedDriveId) return false;
     return true;
   } catch {
