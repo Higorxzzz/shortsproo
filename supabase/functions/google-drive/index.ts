@@ -69,6 +69,55 @@ async function getAccessToken(sa: ServiceAccountKey): Promise<string> {
   return data.access_token;
 }
 
+const DRIVE_CONFIG_ERROR_PREFIX = "DRIVE_CONFIGURATION_ERROR:";
+
+function mapDriveErrorMessage(rawError: string): string {
+  if (rawError.includes("storageQuotaExceeded")) {
+    return `${DRIVE_CONFIG_ERROR_PREFIX} Service Account cannot upload to personal Google Drive storage. Configure GOOGLE_DRIVE_ROOT_FOLDER_ID as a folder inside a Shared Drive and add the Service Account as Content Manager/Manager.`;
+  }
+
+  return rawError;
+}
+
+interface DriveFolderMetadata {
+  id: string;
+  name: string;
+  mimeType: string;
+  driveId?: string;
+  trashed?: boolean;
+}
+
+async function getFolderMetadata(accessToken: string, folderId: string): Promise<DriveFolderMetadata> {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType,driveId,trashed&supportsAllDrives=true`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Root folder lookup error: ${JSON.stringify(data)}`));
+  return data;
+}
+
+function validateRootFolder(metadata: DriveFolderMetadata) {
+  if (metadata.trashed) {
+    throw new Error(`${DRIVE_CONFIG_ERROR_PREFIX} Configured Google Drive root folder is in trash.`);
+  }
+
+  if (metadata.mimeType !== "application/vnd.google-apps.folder") {
+    throw new Error(`${DRIVE_CONFIG_ERROR_PREFIX} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder ID.`);
+  }
+
+  if (!metadata.driveId) {
+    throw new Error(
+      `${DRIVE_CONFIG_ERROR_PREFIX} Root folder is not inside a Shared Drive. Service Accounts require Shared Drive for uploads.`
+    );
+  }
+}
+
 // Google Drive API helpers - all with supportsAllDrives for shared drive support
 async function createFolder(
   accessToken: string,
@@ -91,22 +140,27 @@ async function createFolder(
     }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(`Create folder error: ${JSON.stringify(data)}`);
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Create folder error: ${JSON.stringify(data)}`));
   return data.id;
 }
 
 async function findFolder(
   accessToken: string,
   name: string,
-  parentId: string
+  parentId: string,
+  driveId?: string
 ): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const driveParams = driveId
+    ? `&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`
+    : "&corpora=allDrives&includeItemsFromAllDrives=true";
+
   const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`,
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true${driveParams}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(`Find folder error: ${JSON.stringify(data)}`);
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Find folder error: ${JSON.stringify(data)}`));
   return data.files?.[0]?.id || null;
 }
 
@@ -147,7 +201,7 @@ async function uploadFileResumable(
 
   if (!initResp.ok) {
     const err = await initResp.text();
-    throw new Error(`Resumable init error: ${err}`);
+    throw new Error(mapDriveErrorMessage(`Resumable init error: ${err}`));
   }
 
   const uploadUri = initResp.headers.get("Location");
@@ -163,7 +217,7 @@ async function uploadFileResumable(
   });
 
   const data = await uploadResp.json();
-  if (!uploadResp.ok) throw new Error(`Resumable upload error: ${JSON.stringify(data)}`);
+  if (!uploadResp.ok) throw new Error(mapDriveErrorMessage(`Resumable upload error: ${JSON.stringify(data)}`));
   return { id: data.id, size: data.size || String(fileBytes.length) };
 }
 
@@ -197,7 +251,7 @@ async function uploadFileMultipart(
     }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(`Upload error: ${JSON.stringify(data)}`);
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Upload error: ${JSON.stringify(data)}`));
   return { id: data.id, size: data.size || "0" };
 }
 
@@ -248,6 +302,10 @@ Deno.serve(async (req) => {
 
     const sa: ServiceAccountKey = JSON.parse(saJson);
     const accessToken = await getAccessToken(sa);
+
+    const rootMetadata = await getFolderMetadata(accessToken, rootFolderId);
+    validateRootFolder(rootMetadata);
+    const sharedDriveId = rootMetadata.driveId as string;
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
@@ -339,7 +397,7 @@ Deno.serve(async (req) => {
         }
 
         const monthKey = new Date().toISOString().slice(0, 7);
-        let monthFolderId = await findFolder(accessToken, monthKey, clientFolderId);
+        let monthFolderId = await findFolder(accessToken, monthKey, clientFolderId, sharedDriveId);
 
         if (!monthFolderId) {
           monthFolderId = await createFolder(accessToken, monthKey, clientFolderId);
@@ -441,9 +499,14 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error("Google Drive function error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const isConfigError = msg.startsWith(DRIVE_CONFIG_ERROR_PREFIX);
+
+    return new Response(
+      JSON.stringify({ error: isConfigError ? msg.replace(DRIVE_CONFIG_ERROR_PREFIX, "").trim() : msg }),
+      {
+        status: isConfigError ? 400 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
