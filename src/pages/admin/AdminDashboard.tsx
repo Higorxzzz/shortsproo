@@ -95,13 +95,63 @@ const AdminDashboard = () => {
     },
   });
 
+  // YouTube quota data
+  const { data: quotaData } = useQuery({
+    queryKey: ["youtube-quota"],
+    queryFn: async () => {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+      // Today's usage
+      const { data: todayLogs } = await supabase
+        .from("youtube_quota_log")
+        .select("*")
+        .gte("created_at", todayStart);
+
+      // All-time per channel (join with profiles to get user name)
+      const { data: allLogs } = await supabase
+        .from("youtube_quota_log")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("youtube_channel, name, email");
+
+      const todayTotal = (todayLogs || []).reduce((sum: number, l: any) => sum + (l.units_used || 0), 0);
+      const allTimeTotal = (allLogs || []).reduce((sum: number, l: any) => sum + (l.units_used || 0), 0);
+
+      // Per-channel breakdown (today)
+      const channelMap: Record<string, { units: number; name: string }> = {};
+      for (const log of todayLogs || []) {
+        if (!channelMap[log.channel_id]) {
+          const profile = (profiles || []).find((p: any) => p.youtube_channel === log.channel_id);
+          channelMap[log.channel_id] = { units: 0, name: profile?.name || profile?.email || log.channel_id };
+        }
+        channelMap[log.channel_id].units += log.units_used || 0;
+      }
+
+      const perChannel = Object.entries(channelMap)
+        .map(([channelId, data]) => ({ channelId, ...data }))
+        .sort((a, b) => b.units - a.units);
+
+      return {
+        todayTotal,
+        allTimeTotal,
+        remaining: Math.max(0, 10000 - todayTotal),
+        percentUsed: Math.min(100, Math.round((todayTotal / 10000) * 100)),
+        perChannel,
+      };
+    },
+  });
+
   const cards = [
-    { title: t.language === "pt" ? "Usuários Totais" : "Total Users", value: stats?.totalUsers || 0, icon: Users, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: t.language === "pt" ? "Usuários Ativos" : "Active Users", value: stats?.activeUsers || 0, icon: UserCheck, color: "text-accent", bgColor: "bg-accent/10" },
-    { title: t.language === "pt" ? "Shorts Publicados" : "Shorts Published", value: stats?.totalVideos || 0, icon: Film, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: t.language === "pt" ? "Shorts Hoje" : "Shorts Today", value: stats?.videosToday || 0, icon: TrendingUp, color: "text-accent", bgColor: "bg-accent/10" },
-    { title: t.language === "pt" ? "Receita Mensal" : "Monthly Revenue", value: `R$ ${(stats?.monthlyRevenue || 0).toLocaleString("pt-BR")}`, icon: DollarSign, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: t.language === "pt" ? "Taxa de Conversão" : "Conversion Rate", value: `${stats?.conversionRate || 0}%`, icon: Eye, color: "text-accent", bgColor: "bg-accent/10" },
+    { title: isPt ? "Usuários Totais" : "Total Users", value: stats?.totalUsers || 0, icon: Users, color: "text-primary", bgColor: "bg-primary/10" },
+    { title: isPt ? "Usuários Ativos" : "Active Users", value: stats?.activeUsers || 0, icon: UserCheck, color: "text-accent", bgColor: "bg-accent/10" },
+    { title: isPt ? "Shorts Publicados" : "Shorts Published", value: stats?.totalVideos || 0, icon: Film, color: "text-primary", bgColor: "bg-primary/10" },
+    { title: isPt ? "Shorts Hoje" : "Shorts Today", value: stats?.videosToday || 0, icon: TrendingUp, color: "text-accent", bgColor: "bg-accent/10" },
+    { title: isPt ? "Receita Mensal" : "Monthly Revenue", value: `R$ ${(stats?.monthlyRevenue || 0).toLocaleString("pt-BR")}`, icon: DollarSign, color: "text-primary", bgColor: "bg-primary/10" },
+    { title: isPt ? "Taxa de Conversão" : "Conversion Rate", value: `${stats?.conversionRate || 0}%`, icon: Eye, color: "text-accent", bgColor: "bg-accent/10" },
   ];
 
   return (
@@ -125,13 +175,79 @@ const AdminDashboard = () => {
         ))}
       </div>
 
+      {/* YouTube API Quota */}
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Youtube className="h-5 w-5 text-destructive" />
+                <CardTitle className="text-lg">
+                  {isPt ? "Quota YouTube API (Hoje)" : "YouTube API Quota (Today)"}
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="text-xs">
+                  {isPt ? "Total histórico" : "All-time"}: {quotaData?.allTimeTotal || 0} units
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {isPt ? "Usado hoje" : "Used today"}: <span className="font-semibold text-foreground">{quotaData?.todayTotal || 0}</span> / 10.000 units
+                </span>
+                <span className="text-muted-foreground">
+                  {isPt ? "Restante" : "Remaining"}: <span className="font-semibold text-foreground">{quotaData?.remaining?.toLocaleString() || "10,000"}</span>
+                </span>
+              </div>
+              <Progress value={quotaData?.percentUsed || 0} className="h-2.5" />
+            </div>
+
+            {(quotaData?.perChannel?.length || 0) > 0 && (
+              <>
+                <p className="mb-2 text-sm font-medium">{isPt ? "Uso por usuário (hoje)" : "Usage per user (today)"}</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{isPt ? "Usuário" : "User"}</TableHead>
+                      <TableHead>Channel ID</TableHead>
+                      <TableHead className="text-right">{isPt ? "Quota usada" : "Quota used"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {quotaData?.perChannel?.map((row: any) => (
+                      <TableRow key={row.channelId}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{row.channelId}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="secondary">{row.units} units</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+
+            {(quotaData?.perChannel?.length || 0) === 0 && (
+              <p className="text-center text-sm text-muted-foreground">
+                {isPt ? "Nenhum uso de quota hoje" : "No quota usage today"}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts */}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {/* User growth */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {t.language === "pt" ? "Crescimento de Usuários" : "User Growth"}
+              {isPt ? "Crescimento de Usuários" : "User Growth"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -140,14 +256,7 @@ const AdminDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} />
                 <Bar dataKey="users" fill="hsl(250, 84%, 54%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -158,7 +267,7 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {t.language === "pt" ? "Shorts Enviados por Mês" : "Shorts Uploaded per Month"}
+              {isPt ? "Shorts Enviados por Mês" : "Shorts Uploaded per Month"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -167,14 +276,7 @@ const AdminDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} />
                 <Line type="monotone" dataKey="videos" stroke="hsl(170, 80%, 45%)" strokeWidth={2} dot={{ fill: "hsl(170, 80%, 45%)" }} />
               </LineChart>
             </ResponsiveContainer>
@@ -185,40 +287,24 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {t.language === "pt" ? "Distribuição por Plano" : "Plan Distribution"}
+              {isPt ? "Distribuição por Plano" : "Plan Distribution"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {(stats?.planDist?.length || 0) > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
-                  <Pie
-                    data={stats?.planDist}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={4}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
+                  <Pie data={stats?.planDist} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
                     {stats?.planDist?.map((_: any, i: number) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      color: "hsl(var(--foreground))",
-                    }}
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
               <p className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
-                {t.language === "pt" ? "Sem dados ainda" : "No data yet"}
+                {isPt ? "Sem dados ainda" : "No data yet"}
               </p>
             )}
           </CardContent>
@@ -228,40 +314,24 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {t.language === "pt" ? "Status dos Vídeos" : "Video Status"}
+              {isPt ? "Status dos Vídeos" : "Video Status"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {(stats?.videoStatus?.length || 0) > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
-                  <Pie
-                    data={stats?.videoStatus}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={4}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
+                  <Pie data={stats?.videoStatus} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
                     {stats?.videoStatus?.map((_: any, i: number) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      color: "hsl(var(--foreground))",
-                    }}
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
               <p className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
-                {t.language === "pt" ? "Sem dados ainda" : "No data yet"}
+                {isPt ? "Sem dados ainda" : "No data yet"}
               </p>
             )}
           </CardContent>
