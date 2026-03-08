@@ -134,6 +134,34 @@ const RawVideoUpload = () => {
     }
   };
 
+  if (!hasPlan) {
+    return (
+      <Card className="relative overflow-hidden">
+        <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-muted via-muted to-muted" />
+        <CardContent className="flex flex-col items-center py-12 text-center space-y-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Lock className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold">
+              {isPt ? "Plano necessário" : "Plan required"}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs mt-1">
+              {isPt
+                ? "Você precisa de um plano ativo para enviar vídeos para edição."
+                : "You need an active plan to send videos for editing."}
+            </p>
+          </div>
+          <Button asChild>
+            <Link to="/plans">
+              {isPt ? "Ver planos" : "View plans"}
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="relative overflow-hidden">
       {/* Gradient accent bar */}
