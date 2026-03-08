@@ -279,7 +279,7 @@ async function resolveMonthFolder(
   token: string,
   clientUserId: string,
   clientFolderId: string,
-  sharedDriveId: string
+  sharedDriveId: string | null
 ): Promise<string> {
   const monthKey = new Date().toISOString().slice(0, 7);
 
