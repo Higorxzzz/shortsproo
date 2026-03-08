@@ -257,7 +257,13 @@ const AdminProduction = () => {
                     <div className="flex items-center gap-3">
                       <div>
                         <CardTitle className="text-base">{group.user.user_name || group.user.user_email || "—"}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{group.user.youtube_channel || group.user.user_email}</p>
+                        {group.user.youtube_channel ? (
+                          <a href={`https://www.youtube.com/channel/${group.user.youtube_channel}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                            youtube.com/channel/{group.user.youtube_channel}
+                          </a>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">{group.user.user_email}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
