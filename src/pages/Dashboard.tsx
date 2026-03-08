@@ -20,6 +20,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import VideoCard from "@/components/dashboard/VideoCard";
 import VideoPreviewModal from "@/components/dashboard/VideoPreviewModal";
 import DeliveryCalendar from "@/components/dashboard/DeliveryCalendar";
+import RawVideoUpload from "@/components/dashboard/RawVideoUpload";
+import RawVideosList from "@/components/dashboard/RawVideosList";
 
 const Dashboard = () => {
   const { t } = useLanguage();
