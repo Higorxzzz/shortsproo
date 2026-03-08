@@ -223,10 +223,12 @@ const AdminProduction = () => {
             {isPt ? "Gerencie as entregas diárias de shorts" : "Manage daily shorts deliveries"}
           </p>
         </div>
+      {(teamRole === "admin" || teamRole === "manager") && (
         <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
           {generateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           {isPt ? "Gerar Tarefas de Hoje" : "Generate Today's Tasks"}
         </Button>
+      )}
       </div>
 
       {/* Summary cards */}
