@@ -83,6 +83,7 @@ export function AppSidebar() {
     { to: "/admin/plans", icon: CreditCard, label: isPt ? "Planos" : "Plans", roles: ["admin"] },
     { to: "/admin/videos", icon: Film, label: isPt ? "Vídeos" : "Videos", roles: ["admin", "manager"] },
     { to: "/admin/raw-videos", icon: HardDrive, label: isPt ? "Vídeos Brutos" : "Raw Videos", roles: ["admin", "manager", "editor"] },
+    { to: "/admin/chats", icon: MessageCircle, label: "Chats", roles: ["admin", "manager"] },
     { to: "/admin/settings", icon: Settings, label: isPt ? "Config." : "Settings", roles: ["admin"] },
   ];
 
