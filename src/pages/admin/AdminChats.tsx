@@ -170,6 +170,15 @@ const AdminChats = () => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
+  const clearChat = async () => {
+    if (!selectedChatId) return;
+    await supabase.from("support_messages").delete().eq("chat_id", selectedChatId);
+    await supabase.from("support_chats").delete().eq("id", selectedChatId);
+    setMessages([]);
+    setSelectedChatId(null);
+    setChats((prev) => prev.filter((c) => c.id !== selectedChatId));
+  };
+
   const selectedChat = chats.find((c) => c.id === selectedChatId);
 
   if (authLoading) return <div className="flex h-[60vh] items-center justify-center">Loading...</div>;
