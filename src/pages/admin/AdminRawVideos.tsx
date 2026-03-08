@@ -81,11 +81,11 @@ const AdminRawVideos = () => {
     },
   });
 
-  const markCompleted = useMutation({
-    mutationFn: async (videoId: string) => {
+  const updateStatus = useMutation({
+    mutationFn: async ({ videoId, status }: { videoId: string; status: string }) => {
       const { error } = await supabase
         .from("raw_videos")
-        .update({ status: "completed" })
+        .update({ status })
         .eq("id", videoId);
       if (error) throw error;
     },
