@@ -50,6 +50,7 @@ type RawVideo = {
   user_email: string | null;
   plan_name: string | null;
   youtube_channel: string | null;
+  shorts_per_day: number;
 };
 
 type TabKey = "waiting" | "editing" | "ready" | "delivered";
@@ -87,7 +88,7 @@ const AdminProduction = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("waiting");
   const [searchQuery, setSearchQuery] = useState("");
   const [deliverVideo, setDeliverVideo] = useState<RawVideo | null>(null);
-  const [driveLink, setDriveLink] = useState("");
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
 
   // ---------- Fetch ----------
   const { data: rawVideos = [], isLoading } = useQuery({
@@ -105,7 +106,7 @@ const AdminProduction = () => {
         .from("profiles")
         .select("id, name, email, plan_id, youtube_channel")
         .in("id", userIds);
-      const { data: plans } = await supabase.from("plans").select("id, name");
+      const { data: plans } = await supabase.from("plans").select("id, name, shorts_per_day");
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       const planMap = new Map((plans || []).map((p) => [p.id, p]));
@@ -119,6 +120,7 @@ const AdminProduction = () => {
           user_email: profile?.email || null,
           plan_name: plan?.name || null,
           youtube_channel: profile?.youtube_channel || null,
+          shorts_per_day: plan?.shorts_per_day || 1,
         } as RawVideo;
       });
     },
@@ -135,16 +137,20 @@ const AdminProduction = () => {
   });
 
   const deliverMutation = useMutation({
-    mutationFn: async ({ rawVideo, link }: { rawVideo: RawVideo; link: string }) => {
-      const fileId = extractDriveFileId(link);
-      const { error: vErr } = await supabase.from("videos").insert({
-        user_id: rawVideo.user_id,
-        title: rawVideo.title,
-        drive_link: link,
-        drive_file_id: fileId,
-        status: "new",
-      });
-      if (vErr) throw vErr;
+    mutationFn: async ({ rawVideo, links }: { rawVideo: RawVideo; links: string[] }) => {
+      const validLinks = links.filter((l) => extractDriveFileId(l.trim()));
+      for (let i = 0; i < validLinks.length; i++) {
+        const link = validLinks[i].trim();
+        const fileId = extractDriveFileId(link);
+        const { error: vErr } = await supabase.from("videos").insert({
+          user_id: rawVideo.user_id,
+          title: `${rawVideo.title} - Short ${i + 1}`,
+          drive_link: link,
+          drive_file_id: fileId,
+          status: "new",
+        });
+        if (vErr) throw vErr;
+      }
       const { error: rErr } = await supabase
         .from("raw_videos")
         .update({ status: "completed" })
@@ -154,9 +160,9 @@ const AdminProduction = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] });
       queryClient.invalidateQueries({ queryKey: ["videos"] });
-      toast({ title: isPt ? "Vídeo entregue!" : "Video delivered!" });
+      toast({ title: isPt ? "Vídeos entregues!" : "Videos delivered!" });
       setDeliverVideo(null);
-      setDriveLink("");
+      setDriveLinks([]);
     },
     onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
@@ -219,7 +225,7 @@ const AdminProduction = () => {
   }, [rawVideos, activeTab, searchQuery]);
 
   const pendingTotal = counts.waiting + counts.editing + counts.ready;
-  const fileId = extractDriveFileId(driveLink);
+  const allLinksValid = driveLinks.length > 0 && driveLinks.some((l) => extractDriveFileId(l.trim()));
 
   return (
     <div className="space-y-5">
@@ -434,7 +440,7 @@ const AdminProduction = () => {
                               className="h-8 gap-1.5 text-xs"
                               onClick={() => {
                                 setDeliverVideo(video);
-                                setDriveLink("");
+                                setDriveLinks(Array(video.shorts_per_day).fill(""));
                               }}
                             >
                               <Send className="h-3.5 w-3.5" />
@@ -461,11 +467,11 @@ const AdminProduction = () => {
 
       {/* Deliver Dialog */}
       <Dialog open={!!deliverVideo} onOpenChange={(o) => !o && setDeliverVideo(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5" />
-              {isPt ? "Entregar vídeo final" : "Deliver final video"}
+              {isPt ? "Entregar vídeos finais" : "Deliver final videos"}
             </DialogTitle>
           </DialogHeader>
           {deliverVideo && (
@@ -478,30 +484,52 @@ const AdminProduction = () => {
                 <p>
                   <strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {deliverVideo.title}
                 </p>
+                <p>
+                  <strong>{isPt ? "Plano:" : "Plan:"}</strong> {deliverVideo.plan_name || "—"} ({deliverVideo.shorts_per_day} shorts/dia)
+                </p>
               </div>
-              <div>
-                <Label>{isPt ? "Link do vídeo final (Google Drive)" : "Final video link (Google Drive)"}</Label>
-                <Input
-                  value={driveLink}
-                  onChange={(e) => setDriveLink(e.target.value)}
-                  placeholder="https://drive.google.com/file/d/.../view"
-                  className="mt-1"
-                />
-                {driveLink && !fileId && (
-                  <p className="mt-1 text-xs text-destructive">
-                    {isPt ? "Link inválido" : "Invalid link"}
-                  </p>
-                )}
-                {fileId && (
-                  <div className="mt-3 rounded-lg border overflow-hidden">
-                    <iframe
-                      src={`https://drive.google.com/file/d/${fileId}/preview`}
-                      className="w-full aspect-video"
-                      allow="autoplay"
-                    />
-                  </div>
-                )}
+
+              <div className="space-y-3">
+                {driveLinks.map((link, idx) => {
+                  const linkFileId = extractDriveFileId(link.trim());
+                  return (
+                    <div key={idx} className="space-y-1.5">
+                      <Label className="text-xs font-medium">
+                        Short {idx + 1} {isPt ? "de" : "of"} {driveLinks.length}
+                      </Label>
+                      <Input
+                        value={link}
+                        onChange={(e) => {
+                          const updated = [...driveLinks];
+                          updated[idx] = e.target.value;
+                          setDriveLinks(updated);
+                        }}
+                        placeholder="https://drive.google.com/file/d/.../view"
+                      />
+                      {link.trim() && !linkFileId && (
+                        <p className="text-[11px] text-destructive">
+                          {isPt ? "Link inválido" : "Invalid link"}
+                        </p>
+                      )}
+                      {linkFileId && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <iframe
+                            src={`https://drive.google.com/file/d/${linkFileId}/preview`}
+                            className="w-full aspect-video"
+                            allow="autoplay"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+
+              <p className="text-xs text-muted-foreground">
+                {isPt
+                  ? `Preencha pelo menos 1 link. Links vazios serão ignorados.`
+                  : `Fill at least 1 link. Empty links will be ignored.`}
+              </p>
             </div>
           )}
           <DialogFooter className="gap-2">
@@ -509,8 +537,8 @@ const AdminProduction = () => {
               {isPt ? "Cancelar" : "Cancel"}
             </Button>
             <Button
-              disabled={!fileId || deliverMutation.isPending}
-              onClick={() => deliverVideo && deliverMutation.mutate({ rawVideo: deliverVideo, link: driveLink })}
+              disabled={!allLinksValid || deliverMutation.isPending}
+              onClick={() => deliverVideo && deliverMutation.mutate({ rawVideo: deliverVideo, links: driveLinks })}
             >
               {deliverMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
