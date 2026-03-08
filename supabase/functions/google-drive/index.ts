@@ -101,14 +101,15 @@ async function getMeta(token: string, fileId: string): Promise<DriveMeta> {
   return data;
 }
 
-/** Validates the root folder is a non-trashed folder inside a Shared Drive. Returns driveId. */
+/** Validates the root folder is a non-trashed folder. Returns driveId or empty string for personal drive. */
 function validateRoot(meta: DriveMeta): string {
   if (meta.trashed) throw new Error(`${CFG_ERR} Root folder is in trash.`);
   if (meta.mimeType !== "application/vnd.google-apps.folder")
     throw new Error(`${CFG_ERR} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder.`);
-  if (!meta.driveId)
-    throw new Error(`${CFG_ERR} Root folder is NOT inside a Shared Drive. Service Accounts require a Shared Drive.`);
-  return meta.driveId;
+  if (!meta.driveId) {
+    console.warn("Root folder is NOT in a Shared Drive. Uploads will use the Drive owner's storage quota.");
+  }
+  return meta.driveId || "";
 }
 
 /**
@@ -118,11 +119,10 @@ function validateRoot(meta: DriveMeta): string {
 async function isValidChildFolder(token: string, folderId: string, expectedDriveId: string): Promise<boolean> {
   try {
     const meta = await getMeta(token, folderId);
-    return (
-      !meta.trashed &&
-      meta.mimeType === "application/vnd.google-apps.folder" &&
-      meta.driveId === expectedDriveId
-    );
+    if (meta.trashed || meta.mimeType !== "application/vnd.google-apps.folder") return false;
+    // If we have a shared drive, verify it matches
+    if (expectedDriveId && meta.driveId !== expectedDriveId) return false;
+    return true;
   } catch {
     return false;
   }
@@ -143,8 +143,11 @@ async function createFolder(token: string, name: string, parentId: string): Prom
 
 async function findFolder(token: string, name: string, parentId: string, driveId: string): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const driveParams = driveId
+    ? `&supportsAllDrives=true&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`
+    : `&supportsAllDrives=true`;
   const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`,
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)${driveParams}`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   const data = await resp.json();
