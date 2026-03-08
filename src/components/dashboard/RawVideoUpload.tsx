@@ -140,18 +140,6 @@ const RawVideoUpload = () => {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Title input */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium">{isPt ? "Título do vídeo" : "Video title"}</Label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={isPt ? "Ex: Vlog semana 12" : "Ex: Week 12 vlog"}
-            disabled={uploading}
-            className="h-9"
-          />
-        </div>
-
         {/* File drop zone */}
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">{isPt ? "Arquivo de vídeo" : "Video file"}</Label>
