@@ -294,8 +294,8 @@ const AdminProduction = () => {
                               </Button>
                               {task.status !== "completed" && (
                                 <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setUploadTask(task)}>
-                                  <Upload className="mr-1 h-3 w-3" />
-                                  {isPt ? "Enviar" : "Upload"}
+                                  <Link2 className="mr-1 h-3 w-3" />
+                                  {isPt ? "Link" : "Link"}
                                 </Button>
                               )}
                             </div>
