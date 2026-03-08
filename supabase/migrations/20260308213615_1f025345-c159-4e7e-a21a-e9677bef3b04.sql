@@ -1,0 +1,1 @@
+ALTER TABLE public.plans ADD COLUMN price_second_month numeric NOT NULL DEFAULT 0;
