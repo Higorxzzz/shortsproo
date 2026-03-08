@@ -139,9 +139,19 @@ const RawVideosList = () => {
                           </>
                         )}
                       </div>
+                      {video.status === "waiting" && (
+                        <p className="mt-2 text-[11px] font-medium text-yellow-500/80">
+                          {isPt ? "Aguardando time de edição..." : "Waiting for editing team..."}
+                        </p>
+                      )}
                       {video.status === "editing" && (
                         <p className="mt-2 text-[11px] font-medium text-orange-500/80">
                           {isPt ? "Nosso time está editando seu vídeo..." : "Our team is editing your video..."}
+                        </p>
+                      )}
+                      {video.status === "completed" && (
+                        <p className="mt-2 text-[11px] font-medium text-emerald-500/80">
+                          {isPt ? "Edição finalizada! 🎉" : "Editing finished! 🎉"}
                         </p>
                       )}
                     </div>
