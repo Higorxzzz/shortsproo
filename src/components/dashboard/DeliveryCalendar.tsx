@@ -75,18 +75,18 @@ const DeliveryCalendar = ({ videos, onPreview }: DeliveryCalendarProps) => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-3 pt-1">
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
+          <div className="grid grid-cols-7 gap-0.5 mb-0.5">
             {dayNames.map((d) => (
-              <div key={d} className="py-1.5 text-center text-xs font-medium text-muted-foreground">
+              <div key={d} className="py-1 text-center text-[10px] font-medium text-muted-foreground">
                 {d}
               </div>
             ))}
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5">
             {weeks.flat().map((day, i) => {
               if (day === null) {
                 return <div key={`empty-${i}`} className="aspect-square" />;
