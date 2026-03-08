@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const RawVideosList = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isPt = (t as any).language === "pt";
 
   const { data: rawVideos = [], isLoading } = useQuery({

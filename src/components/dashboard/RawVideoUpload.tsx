@@ -93,7 +93,7 @@ const RawVideoUpload = () => {
         file_path: filePath,
         file_name: file.name,
         file_size: file.size,
-        status: "editing",
+        status: "waiting",
       });
 
       if (dbError) throw dbError;
