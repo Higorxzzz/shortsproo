@@ -28,10 +28,20 @@ const AdminVideos = () => {
   const { data: videos = [] } = useQuery({
     queryKey: ["admin-videos", filterUser],
     queryFn: async () => {
-      let q = supabase.from("videos").select("*, profiles(name, email)").order("uploaded_at", { ascending: false });
+      let q = supabase.from("videos").select("*").order("uploaded_at", { ascending: false });
       if (filterUser) q = q.eq("user_id", filterUser);
-      const { data } = await q;
-      return data || [];
+      const { data: vids } = await q;
+      if (!vids || vids.length === 0) return [];
+
+      // Get unique user_ids and fetch profiles separately
+      const userIds = [...new Set(vids.map((v: any) => v.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", userIds);
+
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      return vids.map((v: any) => ({ ...v, profile: profileMap.get(v.user_id) || null }));
     },
   });
 
