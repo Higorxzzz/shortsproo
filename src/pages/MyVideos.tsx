@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import VideoCard from "@/components/dashboard/VideoCard";
 import VideoPreviewModal from "@/components/dashboard/VideoPreviewModal";
 import DeliveryCalendar from "@/components/dashboard/DeliveryCalendar";
+import YouTubeShortsCarousel from "@/components/dashboard/YouTubeShortsCarousel";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 
 const MyVideos = () => {
@@ -110,6 +111,9 @@ const MyVideos = () => {
           {isPt ? "Baixe os Shorts produzidos pela nossa equipe" : "Download the Shorts produced by our team"}
         </p>
       </div>
+
+      {/* YouTube Shorts Carousel */}
+      <YouTubeShortsCarousel channelId={(profile as any)?.youtube_channel} />
 
       {/* Today's delivery indicator */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>

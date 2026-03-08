@@ -2,3 +2,6 @@ project_id = "cwntftocoqcnsacmzjho"
 
 [functions.google-drive]
 verify_jwt = false
+
+[functions.youtube-videos]
+verify_jwt = false
