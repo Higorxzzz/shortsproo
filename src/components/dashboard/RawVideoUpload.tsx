@@ -2,14 +2,15 @@ import { useState, useRef, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Film, X, FileVideo, CheckCircle2 } from "lucide-react";
+import { Upload, Film, X, FileVideo, CheckCircle2, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -23,13 +24,28 @@ const RawVideoUpload = () => {
   const isPt = (t as any).language === "pt";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+
+  // Check if user has a plan
+  const { data: profile } = useQuery({
+    queryKey: ["profile-plan", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan_id")
+        .eq("id", user!.id)
+        .single();
+      return data;
+    },
+  });
+
+  const hasPlan = !!profile?.plan_id;
 
   const validateFile = (f: File): boolean => {
     if (!ACCEPTED_TYPES.includes(f.type)) {
@@ -117,6 +133,34 @@ const RawVideoUpload = () => {
       setProgress(0);
     }
   };
+
+  if (!hasPlan) {
+    return (
+      <Card className="relative overflow-hidden">
+        <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-muted via-muted to-muted" />
+        <CardContent className="flex flex-col items-center py-12 text-center space-y-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Lock className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold">
+              {isPt ? "Plano necessário" : "Plan required"}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs mt-1">
+              {isPt
+                ? "Você precisa de um plano ativo para enviar vídeos para edição."
+                : "You need an active plan to send videos for editing."}
+            </p>
+          </div>
+          <Button asChild>
+            <Link to="/plans">
+              {isPt ? "Ver planos" : "View plans"}
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="relative overflow-hidden">
