@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Download, Film, CheckCircle2, Clock, Calendar,
   Search, LayoutGrid, CalendarDays, ArrowUpDown,
+  Upload, Scissors, Package, Send,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useMemo } from "react";
