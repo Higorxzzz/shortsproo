@@ -16,7 +16,7 @@ const AdminPlans = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", shorts_per_day: 1, price: 0, description: "" });
+  const [form, setForm] = useState({ name: "", shorts_per_day: 1, price: 0, price_second_month: 0, description: "" });
 
   const { data: plans = [] } = useQuery({
     queryKey: ["plans"],
