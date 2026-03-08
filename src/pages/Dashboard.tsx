@@ -387,6 +387,14 @@ const Dashboard = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Raw video upload & list */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <RawVideoUpload />
+        <div className="lg:col-span-1">
+          <RawVideosList />
+        </div>
+      </div>
+
       {/* Video preview modal */}
       <VideoPreviewModal
         video={previewVideo}

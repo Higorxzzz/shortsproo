@@ -51,6 +51,7 @@ const App = () => (
                       <Route path="users" element={<AdminUsers />} />
                       <Route path="plans" element={<AdminPlans />} />
                       <Route path="videos" element={<AdminVideos />} />
+                      <Route path="raw-videos" element={<AdminRawVideos />} />
                       <Route path="settings" element={<AdminSettings />} />
                     </Route>
                     <Route path="*" element={<NotFound />} />
