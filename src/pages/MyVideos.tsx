@@ -45,6 +45,22 @@ const MyVideos = () => {
     },
   });
 
+  // Auto-resolve youtube_channel_id if missing but channel URL exists
+  useEffect(() => {
+    const p = profile as any;
+    if (p?.youtube_channel && !p?.youtube_channel_id) {
+      supabase.functions.invoke("resolve-youtube-channel", {
+        body: { handle: p.youtube_channel },
+      }).then(({ data }) => {
+        if (data?.channelId) {
+          supabase.from("profiles").update({ youtube_channel_id: data.channelId }).eq("id", p.id).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+          });
+        }
+      });
+    }
+  }, [(profile as any)?.youtube_channel, (profile as any)?.youtube_channel_id]);
+
   const { data: videos = [] } = useQuery({
     queryKey: ["videos", user?.id],
     enabled: !!user,
