@@ -5,7 +5,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   Upload, Film, CreditCard, Settings, LogOut, Zap,
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
-  Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle,
+  Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle, Megaphone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
