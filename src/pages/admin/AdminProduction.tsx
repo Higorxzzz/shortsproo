@@ -467,11 +467,11 @@ const AdminProduction = () => {
 
       {/* Deliver Dialog */}
       <Dialog open={!!deliverVideo} onOpenChange={(o) => !o && setDeliverVideo(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5" />
-              {isPt ? "Entregar vídeo final" : "Deliver final video"}
+              {isPt ? "Entregar vídeos finais" : "Deliver final videos"}
             </DialogTitle>
           </DialogHeader>
           {deliverVideo && (
@@ -484,30 +484,52 @@ const AdminProduction = () => {
                 <p>
                   <strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {deliverVideo.title}
                 </p>
+                <p>
+                  <strong>{isPt ? "Plano:" : "Plan:"}</strong> {deliverVideo.plan_name || "—"} ({deliverVideo.shorts_per_day} shorts/dia)
+                </p>
               </div>
-              <div>
-                <Label>{isPt ? "Link do vídeo final (Google Drive)" : "Final video link (Google Drive)"}</Label>
-                <Input
-                  value={driveLink}
-                  onChange={(e) => setDriveLink(e.target.value)}
-                  placeholder="https://drive.google.com/file/d/.../view"
-                  className="mt-1"
-                />
-                {driveLink && !fileId && (
-                  <p className="mt-1 text-xs text-destructive">
-                    {isPt ? "Link inválido" : "Invalid link"}
-                  </p>
-                )}
-                {fileId && (
-                  <div className="mt-3 rounded-lg border overflow-hidden">
-                    <iframe
-                      src={`https://drive.google.com/file/d/${fileId}/preview`}
-                      className="w-full aspect-video"
-                      allow="autoplay"
-                    />
-                  </div>
-                )}
+
+              <div className="space-y-3">
+                {driveLinks.map((link, idx) => {
+                  const linkFileId = extractDriveFileId(link.trim());
+                  return (
+                    <div key={idx} className="space-y-1.5">
+                      <Label className="text-xs font-medium">
+                        Short {idx + 1} {isPt ? "de" : "of"} {driveLinks.length}
+                      </Label>
+                      <Input
+                        value={link}
+                        onChange={(e) => {
+                          const updated = [...driveLinks];
+                          updated[idx] = e.target.value;
+                          setDriveLinks(updated);
+                        }}
+                        placeholder="https://drive.google.com/file/d/.../view"
+                      />
+                      {link.trim() && !linkFileId && (
+                        <p className="text-[11px] text-destructive">
+                          {isPt ? "Link inválido" : "Invalid link"}
+                        </p>
+                      )}
+                      {linkFileId && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <iframe
+                            src={`https://drive.google.com/file/d/${linkFileId}/preview`}
+                            className="w-full aspect-video"
+                            allow="autoplay"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+
+              <p className="text-xs text-muted-foreground">
+                {isPt
+                  ? `Preencha pelo menos 1 link. Links vazios serão ignorados.`
+                  : `Fill at least 1 link. Empty links will be ignored.`}
+              </p>
             </div>
           )}
           <DialogFooter className="gap-2">
@@ -515,8 +537,8 @@ const AdminProduction = () => {
               {isPt ? "Cancelar" : "Cancel"}
             </Button>
             <Button
-              disabled={!fileId || deliverMutation.isPending}
-              onClick={() => deliverVideo && deliverMutation.mutate({ rawVideo: deliverVideo, link: driveLink })}
+              disabled={!allLinksValid || deliverMutation.isPending}
+              onClick={() => deliverVideo && deliverMutation.mutate({ rawVideo: deliverVideo, links: driveLinks })}
             >
               {deliverMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
