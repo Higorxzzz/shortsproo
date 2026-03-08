@@ -523,10 +523,40 @@ const AdminProduction = () => {
                           )}
 
                           {key === "delivered" && (
-                            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
-                              <CheckCircle2 className="mr-1 h-3 w-3" />
-                              {isPt ? "Entregue" : "Delivered"}
-                            </Badge>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 gap-1.5 text-xs"
+                                onClick={() => handleViewDelivered(video)}
+                              >
+                                <Film className="h-3.5 w-3.5" />
+                                <span className="hidden lg:inline">{isPt ? "Ver" : "View"}</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 gap-1.5 text-xs"
+                                onClick={() => handleEditDelivered(video)}
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                                <span className="hidden lg:inline">{isPt ? "Editar" : "Edit"}</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                                disabled={undoDelivery.isPending}
+                                onClick={() => {
+                                  if (confirm(isPt ? "Devolver para 'Prontos'? Os links entregues serão removidos." : "Move back to 'Ready'? Delivered links will be removed.")) {
+                                    undoDelivery.mutate(video);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="hidden lg:inline">{isPt ? "Desfazer" : "Undo"}</span>
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
