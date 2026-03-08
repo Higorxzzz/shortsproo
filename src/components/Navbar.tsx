@@ -36,8 +36,8 @@ export const Navbar = () => {
               {t.nav.dashboard}
             </Link>
           )}
-          {isAdmin && (
-            <Link to="/admin" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          {isTeamMember && (
+            <Link to={isAdmin ? "/admin" : "/admin/production"} className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
               {t.nav.admin}
             </Link>
           )}
