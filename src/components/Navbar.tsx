@@ -32,9 +32,14 @@ export const Navbar = () => {
             {t.nav.plans}
           </Link>
           {user && (
-            <Link to="/dashboard" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-              {t.nav.dashboard}
-            </Link>
+            <>
+              <Link to="/dashboard" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                {t.nav.dashboard}
+              </Link>
+              <Link to="/my-videos" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                {(t as any).language === "pt" ? "Meus Vídeos" : "My Videos"}
+              </Link>
+            </>
           )}
           {isTeamMember && (
             <Link to={isAdmin ? "/admin" : "/admin/production"} className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -67,7 +72,14 @@ export const Navbar = () => {
         <div className="border-t border-border bg-background p-4 md:hidden">
           <div className="flex flex-col gap-3">
             <Link to="/plans" onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.plans}</Link>
-            {user && <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.dashboard}</Link>}
+            {user && (
+              <>
+                <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.dashboard}</Link>
+                <Link to="/my-videos" onClick={() => setMobileOpen(false)} className="text-sm">
+                  {(t as any).language === "pt" ? "Meus Vídeos" : "My Videos"}
+                </Link>
+              </>
+            )}
             {isTeamMember && <Link to={isAdmin ? "/admin" : "/admin/production"} onClick={() => setMobileOpen(false)} className="text-sm">{t.nav.admin}</Link>}
             <LanguageSwitcher />
             {user ? (

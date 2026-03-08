@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Plans from "./pages/Plans";
 import Dashboard from "./pages/Dashboard";
+import MyVideos from "./pages/MyVideos";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPlans from "./pages/admin/AdminPlans";
@@ -44,6 +45,7 @@ const App = () => (
                     <Route path="/register" element={<Register />} />
                     <Route path="/plans" element={<Plans />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/my-videos" element={<MyVideos />} />
                     <Route path="/admin" element={<AdminLayout />}>
                       <Route index element={<AdminDashboard />} />
                       <Route path="production" element={<AdminProduction />} />
