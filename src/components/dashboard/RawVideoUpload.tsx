@@ -63,7 +63,7 @@ const RawVideoUpload = () => {
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
   const handleUpload = async () => {
-    if (!user || !file || !title.trim()) return;
+    if (!user || !file) return;
 
     setUploading(true);
     setProgress(5);
