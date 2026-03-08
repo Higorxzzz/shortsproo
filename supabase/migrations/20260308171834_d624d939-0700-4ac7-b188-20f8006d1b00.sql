@@ -1,0 +1,1 @@
+CREATE POLICY "Team can update upload logs" ON public.upload_logs FOR UPDATE TO authenticated USING (is_team_member(auth.uid()));
