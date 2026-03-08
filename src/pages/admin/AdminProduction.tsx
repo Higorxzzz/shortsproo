@@ -187,6 +187,76 @@ const AdminProduction = () => {
     },
   });
 
+  // Move delivered back to ready (undo delivery)
+  const undoDelivery = useMutation({
+    mutationFn: async (video: RawVideo) => {
+      // Delete related videos entries
+      await supabase.from("videos").delete().eq("user_id", video.user_id).like("title", `${video.title} - Short%`);
+      // Move back to ready
+      await supabase.from("raw_videos").update({ status: "ready" }).eq("id", video.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      toast({ title: isPt ? "Devolvido para Prontos" : "Moved back to Ready" });
+    },
+    onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
+  });
+
+  // Update delivered video links
+  const updateDeliveredLinks = useMutation({
+    mutationFn: async ({ rawVideo, links }: { rawVideo: RawVideo; links: string[] }) => {
+      // Delete old videos
+      await supabase.from("videos").delete().eq("user_id", rawVideo.user_id).like("title", `${rawVideo.title} - Short%`);
+      // Insert new ones
+      const validLinks = links.filter((l) => extractDriveFileId(l.trim()));
+      for (let i = 0; i < validLinks.length; i++) {
+        const link = validLinks[i].trim();
+        const fileId = extractDriveFileId(link);
+        await supabase.from("videos").insert({
+          user_id: rawVideo.user_id,
+          title: `${rawVideo.title} - Short ${i + 1}`,
+          drive_link: link,
+          drive_file_id: fileId,
+          status: "new",
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      toast({ title: isPt ? "Links atualizados!" : "Links updated!" });
+      setEditDeliveredVideo(null);
+      setEditDriveLinks([]);
+    },
+    onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
+  });
+
+  const handleViewDelivered = async (video: RawVideo) => {
+    const { data } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("user_id", video.user_id)
+      .like("title", `${video.title} - Short%`)
+      .order("title");
+    setDeliveredVideos(data || []);
+    setViewDeliveredVideo(video);
+  };
+
+  const handleEditDelivered = async (video: RawVideo) => {
+    const { data } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("user_id", video.user_id)
+      .like("title", `${video.title} - Short%`)
+      .order("title");
+    const existingLinks = (data || []).map((v: any) => v.drive_link);
+    // Pad to shorts_per_day
+    while (existingLinks.length < video.shorts_per_day) existingLinks.push("");
+    setEditDriveLinks(existingLinks);
+    setEditDeliveredVideo(video);
+  };
+
   const handleDownload = async (video: RawVideo) => {
     if (!video.file_path) return;
     const { data } = await supabase.storage.from("raw-videos").createSignedUrl(video.file_path, 3600);
