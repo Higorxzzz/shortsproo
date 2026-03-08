@@ -106,7 +106,7 @@ const AdminProduction = () => {
         .from("profiles")
         .select("id, name, email, plan_id, youtube_channel")
         .in("id", userIds);
-      const { data: plans } = await supabase.from("plans").select("id, name");
+      const { data: plans } = await supabase.from("plans").select("id, name, shorts_per_day");
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       const planMap = new Map((plans || []).map((p) => [p.id, p]));
@@ -120,6 +120,7 @@ const AdminProduction = () => {
           user_email: profile?.email || null,
           plan_name: plan?.name || null,
           youtube_channel: profile?.youtube_channel || null,
+          shorts_per_day: plan?.shorts_per_day || 1,
         } as RawVideo;
       });
     },
