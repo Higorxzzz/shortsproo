@@ -92,7 +92,7 @@ const RawVideosList = () => {
           <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
             <AnimatePresence mode="popLayout">
               {rawVideos.map((video: any, i: number) => {
-                const config = statusConfig[video.status] || statusConfig.editing;
+                const config = statusConfig[video.status] || statusConfig.waiting;
                 const StatusIcon = config.icon;
                 const colorClasses = config.color;
 
