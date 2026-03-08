@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Upload, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, Film, Filter, Link2, Loader2, MessageSquare, RefreshCw, AlertCircle } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
 import AddVideoLinkDialog from "@/components/AddVideoLinkDialog";
 
