@@ -201,7 +201,7 @@ async function uploadFileResumable(
 
   if (!initResp.ok) {
     const err = await initResp.text();
-    throw new Error(`Resumable init error: ${err}`);
+    throw new Error(mapDriveErrorMessage(`Resumable init error: ${err}`));
   }
 
   const uploadUri = initResp.headers.get("Location");
@@ -217,7 +217,7 @@ async function uploadFileResumable(
   });
 
   const data = await uploadResp.json();
-  if (!uploadResp.ok) throw new Error(`Resumable upload error: ${JSON.stringify(data)}`);
+  if (!uploadResp.ok) throw new Error(mapDriveErrorMessage(`Resumable upload error: ${JSON.stringify(data)}`));
   return { id: data.id, size: data.size || String(fileBytes.length) };
 }
 
@@ -251,7 +251,7 @@ async function uploadFileMultipart(
     }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(`Upload error: ${JSON.stringify(data)}`);
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Upload error: ${JSON.stringify(data)}`));
   return { id: data.id, size: data.size || "0" };
 }
 
