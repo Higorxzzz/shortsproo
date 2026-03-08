@@ -23,6 +23,7 @@ const AdminLayout = () => {
 
   const labels: Record<string, string> = {
     dashboard: t.admin.title,
+    production: t.language === "pt" ? "Produção" : "Production",
     users: t.admin.users,
     plans: t.admin.plans,
     videos: t.admin.videos,
