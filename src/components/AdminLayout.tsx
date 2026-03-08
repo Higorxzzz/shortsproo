@@ -18,6 +18,7 @@ const adminLinks: AdminLink[] = [
   { to: "/admin/users", icon: Users, labelKey: "users", requiredRoles: ["admin"] },
   { to: "/admin/plans", icon: CreditCard, labelKey: "plans", requiredRoles: ["admin"] },
   { to: "/admin/videos", icon: Film, labelKey: "videos", requiredRoles: ["admin", "manager"] },
+  { to: "/admin/raw-videos", icon: Upload, labelKey: "rawVideos", requiredRoles: ["admin", "manager", "editor"] },
   { to: "/admin/settings", icon: Settings, labelKey: "settings", requiredRoles: ["admin"] },
 ];
 
