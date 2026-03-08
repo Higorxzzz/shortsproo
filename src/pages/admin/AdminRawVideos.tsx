@@ -162,20 +162,34 @@ const AdminRawVideos = () => {
                           {new Date(video.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={video.status === "completed" ? "default" : "secondary"} 
-                            className={`text-xs ${
-                              video.status === "waiting" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
-                              video.status === "editing" ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
-                              ""
-                            }`}
+                          <Select
+                            value={video.status}
+                            onValueChange={(value) => updateStatus.mutate({ videoId: video.id, status: value })}
                           >
-                            {video.status === "waiting"
-                              ? (isPt ? "Aguardando" : "Waiting")
-                              : video.status === "editing"
-                              ? (isPt ? "Em edição" : "Editing")
-                              : (isPt ? "Concluído" : "Completed")}
-                          </Badge>
+                            <SelectTrigger className="h-8 w-[180px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="waiting">
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3 text-yellow-500" />
+                                  {isPt ? "Aguardando edição" : "Waiting for editing"}
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="editing">
+                                <span className="flex items-center gap-1.5">
+                                  <Film className="h-3 w-3 text-orange-500" />
+                                  {isPt ? "Equipe editando" : "Team editing"}
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="completed">
+                                <span className="flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                  {isPt ? "Edição finalizada" : "Editing finished"}
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
@@ -204,39 +218,6 @@ const AdminRawVideos = () => {
                                   {isPt ? "Remover" : "Remove"}
                                 </Button>
                               </>
-                            )}
-                            {video.status === "waiting" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs text-orange-600"
-                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "editing" })}
-                              >
-                                <Film className="mr-1 h-3 w-3" />
-                                {isPt ? "Editar" : "Edit"}
-                              </Button>
-                            )}
-                            {video.status === "editing" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs text-emerald-600"
-                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "completed" })}
-                              >
-                                <CheckCircle2 className="mr-1 h-3 w-3" />
-                                {isPt ? "Concluir" : "Complete"}
-                              </Button>
-                            )}
-                            {video.status !== "waiting" && video.status !== "completed" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs text-yellow-600"
-                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "waiting" })}
-                              >
-                                <Clock className="mr-1 h-3 w-3" />
-                                {isPt ? "Aguardar" : "Wait"}
-                              </Button>
                             )}
                             {!hasFile && video.status === "completed" && (
                               <span className="text-xs text-muted-foreground">

@@ -1,0 +1,1 @@
+ALTER TABLE public.raw_videos ALTER COLUMN status SET DEFAULT 'waiting'::text;
