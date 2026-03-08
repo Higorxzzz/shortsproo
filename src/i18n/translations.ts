@@ -1,4 +1,12 @@
-export const translations = {
+type TranslationSection = {
+  [key: string]: string | TranslationSection;
+};
+
+type Translations = {
+  [key: string]: TranslationSection;
+};
+
+export const translations: Record<string, Translations> = {
   pt: {
     nav: {
       home: "Início",
@@ -219,7 +227,6 @@ export const translations = {
       terms: "Terms",
     },
   },
-} as const;
+};
 
 export type Language = "pt" | "en";
-export type TranslationKey = typeof translations.pt;
