@@ -13,10 +13,9 @@ import { useEffect, useState } from "react";
 
 // Stripe price/product mapping
 const STRIPE_TIERS: Record<string, { price_id: string; product_id: string }> = {
-  Starter: { price_id: "price_1T8oUAGl9Dro90S6GK1mfZe3", product_id: "prod_U72ZNri7gsRfn5" },
-  Creator: { price_id: "price_1T8oa4Gl9Dro90S6wIFcbO2F", product_id: "prod_U72fo9xwowso7x" },
-  Growth: { price_id: "price_1T8oaUGl9Dro90S6U2SZHiHs", product_id: "prod_U72fjXveb2OP27" },
-  Pro: { price_id: "price_1T8ob2Gl9Dro90S6YG7Ir4ZX", product_id: "prod_U72gQroK9TkYxT" },
+  Basic: { price_id: "price_1T8oo2Gl9Dro90S68L6UguJr", product_id: "prod_U72tPmImkbfpiF" },
+  Medium: { price_id: "price_1T8oo3Gl9Dro90S6MOgthfTE", product_id: "prod_U72tUJo2TTwMHq" },
+  Pro: { price_id: "price_1T8oo4Gl9Dro90S6TpLq5EMG", product_id: "prod_U72tvbbVzNOWEJ" },
 };
 
 const Plans = () => {
@@ -119,7 +118,7 @@ const Plans = () => {
           </div>
         )}
       </div>
-      <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
         {plans.map((plan: any, i: number) => {
           const isPopular = i === 1;
           const isCurrent = activeTier === plan.name;
@@ -143,8 +142,8 @@ const Plans = () => {
                 <CardHeader className="text-center">
                   <CardTitle className="font-heading text-xl">{plan.name}</CardTitle>
                   <div className="mt-2">
-                    <span className="text-3xl font-bold">R${plan.price}</span>
-                    <span className="text-muted-foreground">/mês</span>
+                    <span className="text-3xl font-bold">${plan.price}</span>
+                    <span className="text-muted-foreground">/{isPt ? "mês" : "mo"}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
