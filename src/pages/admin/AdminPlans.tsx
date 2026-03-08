@@ -130,7 +130,14 @@ const AdminPlans = () => {
                       onBlur={(e) => { const v = Number(e.target.value); if (v !== plan.price_second_month) updatePlan.mutate({ id: plan.id, updates: { price_second_month: v } }); }}
                     />
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{plan.description}</TableCell>
+                  <TableCell className="max-w-[250px]">
+                    <Textarea
+                      defaultValue={plan.description}
+                      className="h-20 text-sm"
+                      placeholder="Uma feature por linha"
+                      onBlur={(e) => { if (e.target.value !== plan.description) updatePlan.mutate({ id: plan.id, updates: { description: e.target.value } }); }}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deletePlan.mutate(plan.id)}>
                       <Trash2 className="h-4 w-4" />

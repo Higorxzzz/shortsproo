@@ -152,11 +152,14 @@ const Plans = () => {
                   )}
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-accent" />
-                    {plan.shorts_per_day} {t.plans.shortsPerDay}
-                  </div>
+                  <ul className="space-y-2 text-sm">
+                    {(plan.description || "").split("\n").filter(Boolean).map((line: string, li: number) => (
+                      <li key={li} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
                   <div className="mt-auto">
                     {isCurrent ? (
                       <Button className="w-full" variant="secondary" onClick={handleManageSubscription} disabled={managingPortal}>
