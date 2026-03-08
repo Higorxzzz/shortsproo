@@ -62,21 +62,21 @@ const DeliveryCalendar = ({ videos, onPreview }: DeliveryCalendarProps) => {
   const selectedVideos = selectedDay ? videosByDate.get(selectedDay) || [] : [];
 
   return (
-    <div className="space-y-4">
-      <Card className="max-w-md">
+    <div className="flex flex-col lg:flex-row gap-4">
+      {/* Calendar - left side */}
+      <Card className="w-full lg:w-80 shrink-0">
         <CardHeader className="pb-1 px-4 pt-3">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={prevMonth}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <CardTitle className="text-base capitalize">{monthName}</CardTitle>
-            <Button variant="ghost" size="icon" onClick={nextMonth}>
+            <CardTitle className="text-sm capitalize">{monthName}</CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-3 pt-1">
-          {/* Day headers */}
           <div className="grid grid-cols-7 gap-0.5 mb-0.5">
             {dayNames.map((d) => (
               <div key={d} className="py-1 text-center text-[10px] font-medium text-muted-foreground">
@@ -84,19 +84,15 @@ const DeliveryCalendar = ({ videos, onPreview }: DeliveryCalendarProps) => {
               </div>
             ))}
           </div>
-
-          {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-0.5">
             {weeks.flat().map((day, i) => {
               if (day === null) {
                 return <div key={`empty-${i}`} className="aspect-square" />;
               }
-
               const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const count = videosByDate.get(dateKey)?.length || 0;
               const isToday = new Date().toISOString().split("T")[0] === dateKey;
               const isSelected = selectedDay === dateKey;
-
               return (
                 <button
                   key={dateKey}
@@ -122,34 +118,44 @@ const DeliveryCalendar = ({ videos, onPreview }: DeliveryCalendarProps) => {
         </CardContent>
       </Card>
 
-      {/* Selected day videos */}
-      {selectedDay && (
-        <div>
-          <h3 className="mb-3 text-sm font-semibold text-foreground">
-            {new Date(selectedDay + "T12:00:00").toLocaleDateString(isPt ? "pt-BR" : "en-US", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-            {selectedVideos.length > 0 && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {selectedVideos.length} {selectedVideos.length === 1 ? "video" : "videos"}
-              </Badge>
+      {/* Videos carousel - right side */}
+      <div className="flex-1 min-w-0">
+        {selectedDay ? (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">
+              {new Date(selectedDay + "T12:00:00").toLocaleDateString(isPt ? "pt-BR" : "en-US", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+              {selectedVideos.length > 0 && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {selectedVideos.length} {selectedVideos.length === 1 ? "video" : "videos"}
+                </Badge>
+              )}
+            </h3>
+            {selectedVideos.length > 0 ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin">
+                {selectedVideos.map((v: any) => (
+                  <div key={v.id} className="w-44 shrink-0 snap-start">
+                    <VideoCard video={v} onPreview={onPreview} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                {isPt ? "Nenhum vídeo neste dia" : "No videos on this day"}
+              </p>
             )}
-          </h3>
-          {selectedVideos.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {selectedVideos.map((v: any) => (
-                <VideoCard key={v.id} video={v} onPreview={onPreview} />
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {isPt ? "Nenhum vídeo neste dia" : "No videos on this day"}
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border p-8">
+            <p className="text-sm text-muted-foreground">
+              {isPt ? "Selecione um dia no calendário" : "Select a day on the calendar"}
             </p>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
