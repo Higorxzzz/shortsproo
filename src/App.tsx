@@ -21,6 +21,7 @@ import AdminVideos from "./pages/admin/AdminVideos";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProduction from "./pages/admin/AdminProduction";
 import AdminTeam from "./pages/admin/AdminTeam";
+import AdminRawVideos from "./pages/admin/AdminRawVideos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
                       <Route path="users" element={<AdminUsers />} />
                       <Route path="plans" element={<AdminPlans />} />
                       <Route path="videos" element={<AdminVideos />} />
+                      <Route path="raw-videos" element={<AdminRawVideos />} />
                       <Route path="settings" element={<AdminSettings />} />
                     </Route>
                     <Route path="*" element={<NotFound />} />

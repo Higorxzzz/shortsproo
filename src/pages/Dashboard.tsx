@@ -20,6 +20,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import VideoCard from "@/components/dashboard/VideoCard";
 import VideoPreviewModal from "@/components/dashboard/VideoPreviewModal";
 import DeliveryCalendar from "@/components/dashboard/DeliveryCalendar";
+import RawVideoUpload from "@/components/dashboard/RawVideoUpload";
+import RawVideosList from "@/components/dashboard/RawVideosList";
 
 const Dashboard = () => {
   const { t } = useLanguage();
@@ -384,6 +386,14 @@ const Dashboard = () => {
           <DeliveryCalendar videos={videos} onPreview={setPreviewVideo} />
         </TabsContent>
       </Tabs>
+
+      {/* Raw video upload & list */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <RawVideoUpload />
+        <div className="lg:col-span-1">
+          <RawVideosList />
+        </div>
+      </div>
 
       {/* Video preview modal */}
       <VideoPreviewModal
