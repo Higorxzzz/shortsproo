@@ -50,6 +50,7 @@ type RawVideo = {
   user_email: string | null;
   plan_name: string | null;
   youtube_channel: string | null;
+  shorts_per_day: number;
 };
 
 type TabKey = "waiting" | "editing" | "ready" | "delivered";
