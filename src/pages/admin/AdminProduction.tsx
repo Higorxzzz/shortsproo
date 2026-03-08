@@ -654,6 +654,138 @@ const AdminProduction = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Delivered Dialog */}
+      <Dialog open={!!viewDeliveredVideo} onOpenChange={(o) => !o && setViewDeliveredVideo(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Film className="h-5 w-5" />
+              {isPt ? "Vídeos entregues" : "Delivered videos"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewDeliveredVideo && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+                <p><strong>{isPt ? "Cliente:" : "Client:"}</strong> {viewDeliveredVideo.user_name || viewDeliveredVideo.user_email}</p>
+                <p><strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {viewDeliveredVideo.title}</p>
+              </div>
+              {deliveredVideos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {isPt ? "Nenhum vídeo encontrado" : "No videos found"}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {deliveredVideos.map((v: any, idx: number) => {
+                    const fId = extractDriveFileId(v.drive_link);
+                    return (
+                      <div key={v.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium">Short {idx + 1}</Label>
+                          <a
+                            href={v.drive_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {isPt ? "Abrir" : "Open"}
+                          </a>
+                        </div>
+                        {fId && (
+                          <div className="rounded-lg border overflow-hidden">
+                            <iframe
+                              src={`https://drive.google.com/file/d/${fId}/preview`}
+                              className="w-full aspect-video"
+                              allow="autoplay"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDeliveredVideo(null)}>
+              {isPt ? "Fechar" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Delivered Dialog */}
+      <Dialog open={!!editDeliveredVideo} onOpenChange={(o) => !o && setEditDeliveredVideo(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5" />
+              {isPt ? "Editar links entregues" : "Edit delivered links"}
+            </DialogTitle>
+          </DialogHeader>
+          {editDeliveredVideo && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+                <p><strong>{isPt ? "Cliente:" : "Client:"}</strong> {editDeliveredVideo.user_name || editDeliveredVideo.user_email}</p>
+                <p><strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {editDeliveredVideo.title}</p>
+              </div>
+              <div className="space-y-3">
+                {editDriveLinks.map((link, idx) => {
+                  const linkFileId = extractDriveFileId(link.trim());
+                  return (
+                    <div key={idx} className="space-y-1.5">
+                      <Label className="text-xs font-medium">
+                        Short {idx + 1} {isPt ? "de" : "of"} {editDriveLinks.length}
+                      </Label>
+                      <Input
+                        value={link}
+                        onChange={(e) => {
+                          const updated = [...editDriveLinks];
+                          updated[idx] = e.target.value;
+                          setEditDriveLinks(updated);
+                        }}
+                        placeholder="https://drive.google.com/file/d/.../view"
+                      />
+                      {link.trim() && !linkFileId && (
+                        <p className="text-[11px] text-destructive">
+                          {isPt ? "Link inválido" : "Invalid link"}
+                        </p>
+                      )}
+                      {linkFileId && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <iframe
+                            src={`https://drive.google.com/file/d/${linkFileId}/preview`}
+                            className="w-full aspect-video"
+                            allow="autoplay"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditDeliveredVideo(null)}>
+              {isPt ? "Cancelar" : "Cancel"}
+            </Button>
+            <Button
+              disabled={!editDriveLinks.some((l) => extractDriveFileId(l.trim())) || updateDeliveredLinks.isPending}
+              onClick={() => editDeliveredVideo && updateDeliveredLinks.mutate({ rawVideo: editDeliveredVideo, links: editDriveLinks })}
+            >
+              {updateDeliveredLinks.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+              )}
+              {isPt ? "Salvar" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
