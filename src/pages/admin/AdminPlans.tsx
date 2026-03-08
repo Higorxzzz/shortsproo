@@ -34,7 +34,7 @@ const AdminPlans = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plans"] });
       setOpen(false);
-      setForm({ name: "", shorts_per_day: 1, price: 0, description: "" });
+      setForm({ name: "", shorts_per_day: 1, price: 0, price_second_month: 0, description: "" });
       toast.success(t.language === "pt" ? "Plano criado!" : "Plan created!");
     },
   });
