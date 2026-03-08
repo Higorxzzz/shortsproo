@@ -109,6 +109,8 @@ const RawVideosList = () => {
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClasses}`}>
                       {video.status === "editing" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : video.status === "waiting" ? (
+                        <Clock className="h-4 w-4" />
                       ) : (
                         <StatusIcon className="h-4 w-4" />
                       )}
