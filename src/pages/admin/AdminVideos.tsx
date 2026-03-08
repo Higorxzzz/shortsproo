@@ -132,7 +132,7 @@ const AdminVideos = () => {
             <TableBody>
               {videos.map((v: any) => (
                 <TableRow key={v.id}>
-                  <TableCell>{v.profiles?.name || v.profiles?.email || "-"}</TableCell>
+                  <TableCell>{v.profile?.name || v.profile?.email || "-"}</TableCell>
                   <TableCell>{v.title}</TableCell>
                   <TableCell>{new Date(v.uploaded_at).toLocaleDateString()}</TableCell>
                   <TableCell>{formatFileSize(v.file_size)}</TableCell>
