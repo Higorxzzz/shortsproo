@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Film, X, FileVideo, CheckCircle2 } from "lucide-react";
+import { Upload, Film, X, FileVideo, CheckCircle2, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
