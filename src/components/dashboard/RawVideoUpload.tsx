@@ -1,65 +1,90 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Film, X } from "lucide-react";
+import { Upload, Film, X, FileVideo, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/x-matroska"];
-const MAX_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_SIZE = 500 * 1024 * 1024;
 
 const RawVideoUpload = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isPt = (t as any).language === "pt";
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const validateFile = (f: File): boolean => {
     if (!ACCEPTED_TYPES.includes(f.type)) {
       toast.error(isPt ? "Formato não aceito. Use MP4, MOV ou MKV." : "Format not accepted. Use MP4, MOV or MKV.");
-      return;
+      return false;
     }
     if (f.size > MAX_SIZE) {
       toast.error(isPt ? "Arquivo muito grande. Máximo 500MB." : "File too large. Maximum 500MB.");
-      return;
+      return false;
     }
-    setFile(f);
+    return true;
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f && validateFile(f)) setFile(f);
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && validateFile(f)) setFile(f);
+  }, [isPt]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
   const handleUpload = async () => {
     if (!user || !file || !title.trim()) return;
 
     setUploading(true);
-    setProgress(10);
+    setProgress(5);
 
     try {
       const ext = file.name.split(".").pop();
       const filePath = `${user.id}/${Date.now()}.${ext}`;
 
-      setProgress(30);
+      // Simulate smooth progress
+      const progressInterval = setInterval(() => {
+        setProgress((p) => Math.min(p + 2, 85));
+      }, 300);
 
       const { error: uploadError } = await supabase.storage
         .from("raw-videos")
         .upload(filePath, file, { upsert: false });
 
+      clearInterval(progressInterval);
       if (uploadError) throw uploadError;
 
-      setProgress(70);
+      setProgress(90);
 
       const { error: dbError } = await supabase.from("raw_videos").insert({
         user_id: user.id,
@@ -74,11 +99,17 @@ const RawVideoUpload = () => {
       if (dbError) throw dbError;
 
       setProgress(100);
+      setUploadSuccess(true);
       toast.success(isPt ? "Vídeo enviado com sucesso!" : "Video uploaded successfully!");
-      setTitle("");
-      setNotes("");
-      setFile(null);
-      queryClient.invalidateQueries({ queryKey: ["raw-videos"] });
+
+      setTimeout(() => {
+        setTitle("");
+        setNotes("");
+        setFile(null);
+        setUploadSuccess(false);
+        queryClient.invalidateQueries({ queryKey: ["raw-videos"] });
+        queryClient.invalidateQueries({ queryKey: ["raw-videos-count"] });
+      }, 1500);
     } catch (err: any) {
       console.error(err);
       toast.error(isPt ? "Erro ao enviar vídeo." : "Error uploading video.");
@@ -89,86 +120,168 @@ const RawVideoUpload = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Upload className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">
-            {isPt ? "Enviar vídeo para edição" : "Send video for editing"}
-          </CardTitle>
+    <Card className="relative overflow-hidden">
+      {/* Gradient accent bar */}
+      <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-primary via-primary/80 to-accent" />
+
+      <CardHeader className="pb-4 pt-6">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+            <Upload className="h-4.5 w-4.5 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">
+              {isPt ? "Enviar vídeo para edição" : "Send video for editing"}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {isPt ? "Nossa equipe transforma em Short profissional" : "Our team turns it into a professional Short"}
+            </p>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>{isPt ? "Título do vídeo" : "Video title"}</Label>
+
+      <CardContent className="space-y-5">
+        {/* Title input */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">{isPt ? "Título do vídeo" : "Video title"}</Label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={isPt ? "Ex: Vlog semana 12" : "Ex: Week 12 vlog"}
             disabled={uploading}
+            className="h-9"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>{isPt ? "Arquivo de vídeo" : "Video file"}</Label>
-          {file ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
-              <Film className="h-4 w-4 text-primary" />
-              <span className="flex-1 truncate text-sm">{file.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {(file.size / 1024 / 1024).toFixed(1)} MB
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setFile(null)}
-                disabled={uploading}
+        {/* File drop zone */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">{isPt ? "Arquivo de vídeo" : "Video file"}</Label>
+          <AnimatePresence mode="wait">
+            {file ? (
+              <motion.div
+                key="file-selected"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5"
               >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          ) : (
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-6 transition-colors hover:border-primary/50 hover:bg-muted/30">
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {isPt ? "Clique para selecionar (MP4, MOV, MKV)" : "Click to select (MP4, MOV, MKV)"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {isPt ? "Máximo 500MB" : "Maximum 500MB"}
-              </span>
-              <input
-                type="file"
-                className="hidden"
-                accept=".mp4,.mov,.mkv,video/mp4,video/quicktime,video/x-matroska"
-                onChange={handleFileChange}
-              />
-            </label>
-          )}
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <FileVideo className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 rounded-full p-0 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setFile(null)}
+                  disabled={uploading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.label
+                key="drop-zone"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                className={`group flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all duration-200 ${
+                  isDragging
+                    ? "border-primary bg-primary/5 scale-[1.01]"
+                    : "border-border hover:border-primary/40 hover:bg-muted/40"
+                }`}
+              >
+                <div className={`rounded-full p-3 transition-colors ${
+                  isDragging ? "bg-primary/15" : "bg-muted group-hover:bg-primary/10"
+                }`}>
+                  <Upload className={`h-6 w-6 transition-colors ${
+                    isDragging ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+                  }`} />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">
+                    {isDragging
+                      ? (isPt ? "Solte o arquivo aqui" : "Drop the file here")
+                      : (isPt ? "Arraste ou clique para selecionar" : "Drag or click to select")}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    MP4, MOV, MKV · {isPt ? "Máximo" : "Max"} 500MB
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".mp4,.mov,.mkv,video/mp4,video/quicktime,video/x-matroska"
+                  onChange={handleFileChange}
+                />
+              </motion.label>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="space-y-2">
-          <Label>{isPt ? "Observações (opcional)" : "Notes (optional)"}</Label>
+        {/* Notes */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">{isPt ? "Observações (opcional)" : "Notes (optional)"}</Label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={isPt ? "Instruções ou detalhes para a equipe..." : "Instructions or details for the team..."}
             disabled={uploading}
             rows={3}
+            className="resize-none text-sm"
           />
         </div>
 
-        {uploading && <Progress value={progress} className="h-2" />}
+        {/* Progress bar */}
+        <AnimatePresence>
+          {uploading && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{isPt ? "Enviando..." : "Uploading..."}</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        {/* Submit button */}
         <Button
           onClick={handleUpload}
-          disabled={uploading || !title.trim() || !file}
-          className="w-full"
+          disabled={uploading || !title.trim() || !file || uploadSuccess}
+          className="w-full gap-2 h-11 text-sm font-semibold"
+          size="lg"
         >
-          <Upload className="mr-2 h-4 w-4" />
-          {uploading
-            ? (isPt ? "Enviando..." : "Uploading...")
-            : (isPt ? "Enviar vídeo" : "Upload video")}
+          {uploadSuccess ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              {isPt ? "Enviado!" : "Uploaded!"}
+            </>
+          ) : uploading ? (
+            <>
+              <Upload className="h-4 w-4 animate-bounce" />
+              {isPt ? "Enviando..." : "Uploading..."}
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              {isPt ? "Enviar vídeo" : "Upload video"}
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
