@@ -161,10 +161,19 @@ const AdminRawVideos = () => {
                           {new Date(video.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={video.status === "completed" ? "default" : "secondary"} className="text-xs">
-                            {video.status === "completed"
-                              ? (isPt ? "Concluído" : "Completed")
-                              : (isPt ? "Em edição" : "Editing")}
+                          <Badge 
+                            variant={video.status === "completed" ? "default" : "secondary"} 
+                            className={`text-xs ${
+                              video.status === "waiting" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
+                              video.status === "editing" ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
+                              ""
+                            }`}
+                          >
+                            {video.status === "waiting"
+                              ? (isPt ? "Aguardando" : "Waiting")
+                              : video.status === "editing"
+                              ? (isPt ? "Em edição" : "Editing")
+                              : (isPt ? "Concluído" : "Completed")}
                           </Badge>
                         </TableCell>
                         <TableCell>
