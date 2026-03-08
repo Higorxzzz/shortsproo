@@ -103,7 +103,6 @@ const RawVideoUpload = () => {
       toast.success(isPt ? "Vídeo enviado com sucesso!" : "Video uploaded successfully!");
 
       setTimeout(() => {
-        setTitle("");
         setNotes("");
         setFile(null);
         setUploadSuccess(false);
