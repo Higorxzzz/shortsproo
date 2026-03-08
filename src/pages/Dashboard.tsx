@@ -73,7 +73,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="container max-w-6xl py-8">
+    <div className="max-w-6xl mx-auto">
       {/* Hero section */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
