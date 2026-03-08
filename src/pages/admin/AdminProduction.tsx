@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +16,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import {
   CheckCircle2,
@@ -28,13 +29,11 @@ import {
   Loader2,
   Package,
   Play,
-  RefreshCw,
   Search,
   Send,
   Trash2,
   User,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 // ---------- Types ----------
 type RawVideo = {
@@ -47,29 +46,35 @@ type RawVideo = {
   file_name: string | null;
   file_size: number | null;
   created_at: string;
-  // joined
   user_name: string | null;
   user_email: string | null;
   plan_name: string | null;
   youtube_channel: string | null;
-  // delivery info
-  delivered_video_id: string | null;
-  delivered_drive_link: string | null;
-  delivered_at: string | null;
 };
 
-type KanbanColumn = "waiting" | "editing" | "ready" | "delivered";
+type TabKey = "waiting" | "editing" | "ready" | "delivered";
 
-const COLUMNS: { key: KanbanColumn; labelPt: string; labelEn: string; icon: typeof Clock; colorClass: string; bgClass: string }[] = [
-  { key: "waiting", labelPt: "Novos Vídeos", labelEn: "New Videos", icon: Inbox, colorClass: "text-yellow-500", bgClass: "bg-yellow-500/10 border-yellow-500/20" },
-  { key: "editing", labelPt: "Editando", labelEn: "Editing", icon: Edit3, colorClass: "text-orange-500", bgClass: "bg-orange-500/10 border-orange-500/20" },
-  { key: "ready", labelPt: "Pronto p/ Entrega", labelEn: "Ready to Deliver", icon: Package, colorClass: "text-blue-500", bgClass: "bg-blue-500/10 border-blue-500/20" },
-  { key: "delivered", labelPt: "Entregue", labelEn: "Delivered", icon: CheckCircle2, colorClass: "text-primary", bgClass: "bg-primary/10 border-primary/20" },
-];
+const TAB_CONFIG: Record<TabKey, { labelPt: string; labelEn: string; icon: typeof Clock }> = {
+  waiting: { labelPt: "Novos", labelEn: "New", icon: Inbox },
+  editing: { labelPt: "Editando", labelEn: "Editing", icon: Edit3 },
+  ready: { labelPt: "Prontos", labelEn: "Ready", icon: Package },
+  delivered: { labelPt: "Entregues", labelEn: "Delivered", icon: CheckCircle2 },
+};
 
 function extractDriveFileId(url: string): string | null {
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
+}
+
+function timeAgo(dateStr: string, isPt: boolean): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return isPt ? "agora" : "now";
+  if (mins < 60) return `${mins}min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
 }
 
 // ---------- Component ----------
@@ -79,18 +84,19 @@ const AdminProduction = () => {
   const queryClient = useQueryClient();
   const isPt = t.language === "pt";
 
+  const [activeTab, setActiveTab] = useState<TabKey>("waiting");
   const [searchQuery, setSearchQuery] = useState("");
-  const [deliverDialog, setDeliverDialog] = useState<RawVideo | null>(null);
+  const [deliverVideo, setDeliverVideo] = useState<RawVideo | null>(null);
   const [driveLink, setDriveLink] = useState("");
 
-  // ---------- Fetch all raw videos with user info ----------
+  // ---------- Fetch ----------
   const { data: rawVideos = [], isLoading } = useQuery({
-    queryKey: ["kanban-raw-videos"],
+    queryKey: ["production-raw-videos"],
     queryFn: async () => {
       const { data: videos, error } = await supabase
         .from("raw_videos")
         .select("*")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       if (!videos?.length) return [];
 
@@ -101,86 +107,61 @@ const AdminProduction = () => {
         .in("id", userIds);
       const { data: plans } = await supabase.from("plans").select("id, name");
 
-      // Check which raw_videos have been delivered (have a matching video entry)
-      // We match by user_id and look for videos created after the raw video
-      const { data: deliveredVideos } = await supabase
-        .from("videos")
-        .select("id, user_id, drive_link, uploaded_at")
-        .in("user_id", userIds);
-
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       const planMap = new Map((plans || []).map((p) => [p.id, p]));
 
       return videos.map((v) => {
         const profile = profileMap.get(v.user_id);
         const plan = profile?.plan_id ? planMap.get(profile.plan_id) : null;
-        // Find delivered video for this raw video (matched by notes containing raw video id or by status)
-        const delivered = v.status === "completed"
-          ? (deliveredVideos || []).find(
-              (dv) => dv.user_id === v.user_id && new Date(dv.uploaded_at) >= new Date(v.created_at)
-            )
-          : null;
-
         return {
           ...v,
           user_name: profile?.name || null,
           user_email: profile?.email || null,
           plan_name: plan?.name || null,
           youtube_channel: profile?.youtube_channel || null,
-          delivered_video_id: delivered?.id || null,
-          delivered_drive_link: delivered?.drive_link || null,
-          delivered_at: delivered?.uploaded_at || null,
         } as RawVideo;
       });
     },
   });
 
   // ---------- Mutations ----------
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ videoId, status }: { videoId: string; status: string }) => {
-      const { error } = await supabase
-        .from("raw_videos")
-        .update({ status })
-        .eq("id", videoId);
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("raw_videos").update({ status }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-raw-videos"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] }),
     onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
 
   const deliverMutation = useMutation({
     mutationFn: async ({ rawVideo, link }: { rawVideo: RawVideo; link: string }) => {
       const fileId = extractDriveFileId(link);
-      // Insert final video
-      const { error: videoErr } = await supabase.from("videos").insert({
+      const { error: vErr } = await supabase.from("videos").insert({
         user_id: rawVideo.user_id,
         title: rawVideo.title,
         drive_link: link,
         drive_file_id: fileId,
         status: "new",
       });
-      if (videoErr) throw videoErr;
-
-      // Mark raw video as completed
-      const { error: rawErr } = await supabase
+      if (vErr) throw vErr;
+      const { error: rErr } = await supabase
         .from("raw_videos")
         .update({ status: "completed" })
         .eq("id", rawVideo.id);
-      if (rawErr) throw rawErr;
+      if (rErr) throw rErr;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-raw-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] });
       queryClient.invalidateQueries({ queryKey: ["videos"] });
       toast({ title: isPt ? "Vídeo entregue!" : "Video delivered!" });
-      setDeliverDialog(null);
+      setDeliverVideo(null);
       setDriveLink("");
     },
     onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
 
-  const deleteRawFileMutation = useMutation({
+  const deleteRawFile = useMutation({
     mutationFn: async (video: RawVideo) => {
       if (video.file_path) {
         await supabase.storage.from("raw-videos").remove([video.file_path]);
@@ -191,63 +172,53 @@ const AdminProduction = () => {
         .eq("id", video.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-raw-videos"] });
-      toast({ title: isPt ? "Arquivo bruto removido" : "Raw file removed" });
+      queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] });
+      toast({ title: isPt ? "Arquivo removido" : "File removed" });
     },
   });
 
   const handleDownload = async (video: RawVideo) => {
     if (!video.file_path) return;
-    const { data } = await supabase.storage
-      .from("raw-videos")
-      .createSignedUrl(video.file_path, 3600);
-    if (data?.signedUrl) {
-      window.location.assign(data.signedUrl);
-    }
+    const { data } = await supabase.storage.from("raw-videos").createSignedUrl(video.file_path, 3600);
+    if (data?.signedUrl) window.location.assign(data.signedUrl);
   };
 
-  // ---------- Organize into columns ----------
-  const columns = useMemo(() => {
-    const result: Record<KanbanColumn, RawVideo[]> = {
-      waiting: [],
-      editing: [],
-      ready: [],
-      delivered: [],
-    };
+  // ---------- Organize by tab ----------
+  const counts = useMemo(() => {
+    const c = { waiting: 0, editing: 0, ready: 0, delivered: 0 };
+    rawVideos.forEach((v) => {
+      if (v.status === "completed") c.delivered++;
+      else if (v.status === "editing") c.editing++;
+      else if (v.status === "ready") c.ready++;
+      else c.waiting++;
+    });
+    return c;
+  }, [rawVideos]);
 
+  const filteredVideos = useMemo(() => {
+    const statusMap: Record<TabKey, string[]> = {
+      waiting: ["waiting"],
+      editing: ["editing"],
+      ready: ["ready"],
+      delivered: ["completed"],
+    };
+    const validStatuses = statusMap[activeTab];
     const q = searchQuery.toLowerCase();
 
-    for (const v of rawVideos) {
-      // Search filter
+    return rawVideos.filter((v) => {
+      if (!validStatuses.includes(v.status)) return false;
       if (q) {
-        const match =
+        return (
           (v.user_name || "").toLowerCase().includes(q) ||
           (v.user_email || "").toLowerCase().includes(q) ||
-          v.title.toLowerCase().includes(q);
-        if (!match) continue;
+          v.title.toLowerCase().includes(q)
+        );
       }
+      return true;
+    });
+  }, [rawVideos, activeTab, searchQuery]);
 
-      if (v.status === "completed") {
-        result.delivered.push(v);
-      } else if (v.status === "editing") {
-        result.editing.push(v);
-      } else if (v.status === "ready") {
-        result.ready.push(v);
-      } else {
-        result.waiting.push(v);
-      }
-    }
-
-    return result;
-  }, [rawVideos, searchQuery]);
-
-  // Stats
-  const todayStr = new Date().toISOString().split("T")[0];
-  const deliveredToday = columns.delivered.filter(
-    (v) => v.delivered_at?.startsWith(todayStr) || v.created_at.startsWith(todayStr)
-  ).length;
-  const totalPending = columns.waiting.length + columns.editing.length + columns.ready.length;
-
+  const pendingTotal = counts.waiting + counts.editing + counts.ready;
   const fileId = extractDriveFileId(driveLink);
 
   return (
@@ -259,124 +230,255 @@ const AdminProduction = () => {
             {isPt ? "Painel de Produção" : "Production Board"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isPt ? "Kanban de edição de shorts" : "Shorts editing kanban"}
+            {isPt ? "Gerencie a edição e entrega de shorts" : "Manage shorts editing and delivery"}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-            <Send className="h-4 w-4 text-primary" />
-            <span className="font-bold">{deliveredToday}</span>
-            <span className="text-muted-foreground">{isPt ? "entregues hoje" : "delivered today"}</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
             <Clock className="h-4 w-4 text-orange-500" />
-            <span className="font-bold">{totalPending}</span>
+            <span className="font-bold">{pendingTotal}</span>
             <span className="text-muted-foreground">{isPt ? "pendentes" : "pending"}</span>
           </div>
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <span className="font-bold">{counts.delivered}</span>
+            <span className="text-muted-foreground">{isPt ? "entregues" : "delivered"}</span>
+          </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder={isPt ? "Buscar por cliente ou título..." : "Search by client or title..."}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* Kanban Board */}
-      {isLoading ? (
-        <div className="flex h-60 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-          {COLUMNS.map((col) => {
-            const items = columns[col.key];
-            const Icon = col.icon;
-
-            return (
-              <div key={col.key} className="flex flex-col">
-                {/* Column header */}
-                <div className={`flex items-center gap-2 rounded-t-xl border px-4 py-3 ${col.bgClass}`}>
-                  <Icon className={`h-4 w-4 ${col.colorClass}`} />
-                  <span className="font-semibold text-sm">
-                    {isPt ? col.labelPt : col.labelEn}
-                  </span>
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    {items.length}
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+        <div className="flex flex-wrap items-center gap-3">
+          <TabsList className="h-10">
+            {(Object.keys(TAB_CONFIG) as TabKey[]).map((key) => {
+              const cfg = TAB_CONFIG[key];
+              const Icon = cfg.icon;
+              const count = counts[key];
+              return (
+                <TabsTrigger key={key} value={key} className="gap-2 px-4">
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{isPt ? cfg.labelPt : cfg.labelEn}</span>
+                  <Badge
+                    variant={count > 0 && key !== "delivered" ? "default" : "secondary"}
+                    className="h-5 min-w-[20px] justify-center text-[10px]"
+                  >
+                    {count}
                   </Badge>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          <div className="relative flex-1 max-w-xs ml-auto">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={isPt ? "Buscar cliente ou título..." : "Search client or title..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        {(Object.keys(TAB_CONFIG) as TabKey[]).map((key) => (
+          <TabsContent key={key} value={key} className="mt-4">
+            {isLoading ? (
+              <div className="flex h-40 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredVideos.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center py-16 text-center">
+                  <div className="mb-3 rounded-full bg-muted p-4">
+                    {(() => { const I = TAB_CONFIG[key].icon; return <I className="h-6 w-6 text-muted-foreground/40" />; })()}
+                  </div>
+                  <p className="font-medium text-muted-foreground">
+                    {isPt ? "Nenhum vídeo nesta etapa" : "No videos in this stage"}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    {key === "waiting"
+                      ? isPt ? "Quando um cliente enviar um vídeo, ele aparece aqui" : "When a client uploads a video, it appears here"
+                      : isPt ? "Mova vídeos para esta etapa pelo fluxo" : "Move videos to this stage through the flow"}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {/* Table header */}
+                <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <div className="col-span-3">{isPt ? "Cliente" : "Client"}</div>
+                  <div className="col-span-3">{isPt ? "Vídeo" : "Video"}</div>
+                  <div className="col-span-2">{isPt ? "Plano" : "Plan"}</div>
+                  <div className="col-span-1">{isPt ? "Tempo" : "Time"}</div>
+                  <div className="col-span-3 text-right">{isPt ? "Ações" : "Actions"}</div>
                 </div>
 
-                {/* Column body */}
-                <div className="flex-1 rounded-b-xl border border-t-0 bg-muted/20 p-2 min-h-[300px] max-h-[calc(100vh-320px)] overflow-y-auto">
-                  <div className="space-y-2">
-                    <AnimatePresence mode="popLayout">
-                      {items.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-center">
-                          <div className="mb-2 rounded-full bg-muted p-3">
-                            <Icon className="h-5 w-5 text-muted-foreground/40" />
+                {filteredVideos.map((video) => (
+                  <Card key={video.id} className="transition-colors hover:border-foreground/10">
+                    <CardContent className="p-0">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center px-4 py-3">
+                        {/* Client */}
+                        <div className="col-span-3 flex items-center gap-2.5 min-w-0">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {isPt ? "Nenhum vídeo" : "No videos"}
-                          </p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              {video.user_name || video.user_email?.split("@")[0] || "—"}
+                            </p>
+                            {video.youtube_channel && (
+                              <a
+                                href={video.youtube_channel.startsWith("http") ? video.youtube_channel : `https://youtube.com/channel/${video.youtube_channel}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-2.5 w-2.5" />
+                                Canal
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        items.map((video) => (
-                          <KanbanCard
-                            key={video.id}
-                            video={video}
-                            column={col.key}
-                            isPt={isPt}
-                            onStartEditing={() =>
-                              updateStatusMutation.mutate({ videoId: video.id, status: "editing" })
-                            }
-                            onMarkReady={() =>
-                              updateStatusMutation.mutate({ videoId: video.id, status: "ready" })
-                            }
-                            onDeliver={() => {
-                              setDeliverDialog(video);
-                              setDriveLink("");
-                            }}
-                            onDownload={() => handleDownload(video)}
-                            onDeleteRawFile={() => {
-                              if (confirm(isPt ? "Remover arquivo bruto?" : "Remove raw file?")) {
-                                deleteRawFileMutation.mutate(video);
-                              }
-                            }}
-                            isUpdating={updateStatusMutation.isPending}
-                          />
-                        ))
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
+
+                        {/* Video info */}
+                        <div className="col-span-3 min-w-0">
+                          <p className="text-sm font-medium truncate">{video.title}</p>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            {video.file_size && (
+                              <span>{(video.file_size / 1024 / 1024).toFixed(1)} MB</span>
+                            )}
+                            {video.notes && (
+                              <span className="truncate max-w-[120px]">{video.notes}</span>
+                            )}
+                            {!video.file_path && video.status !== "waiting" && (
+                              <span className="text-muted-foreground/50">{isPt ? "Sem arquivo" : "No file"}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Plan */}
+                        <div className="col-span-2">
+                          <Badge variant="outline" className="text-xs">
+                            {video.plan_name || "—"}
+                          </Badge>
+                        </div>
+
+                        {/* Time */}
+                        <div className="col-span-1">
+                          <span className="text-xs text-muted-foreground">
+                            {timeAgo(video.created_at, isPt)}
+                          </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="col-span-3 flex items-center justify-end gap-1.5 flex-wrap">
+                          {/* Download raw file */}
+                          {video.file_path && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 gap-1.5 text-xs"
+                              onClick={() => handleDownload(video)}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span className="hidden lg:inline">{isPt ? "Baixar" : "Download"}</span>
+                            </Button>
+                          )}
+
+                          {/* Delete raw file */}
+                          {video.file_path && (key === "ready" || key === "delivered") && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                if (confirm(isPt ? "Apagar arquivo bruto?" : "Delete raw file?")) {
+                                  deleteRawFile.mutate(video);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+
+                          {/* Status actions */}
+                          {key === "waiting" && (
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs"
+                              disabled={updateStatus.isPending}
+                              onClick={() => updateStatus.mutate({ id: video.id, status: "editing" })}
+                            >
+                              <Play className="h-3.5 w-3.5" />
+                              {isPt ? "Começar edição" : "Start editing"}
+                            </Button>
+                          )}
+
+                          {key === "editing" && (
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs"
+                              disabled={updateStatus.isPending}
+                              onClick={() => updateStatus.mutate({ id: video.id, status: "ready" })}
+                            >
+                              <Package className="h-3.5 w-3.5" />
+                              {isPt ? "Marcar pronto" : "Mark ready"}
+                            </Button>
+                          )}
+
+                          {key === "ready" && (
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs"
+                              onClick={() => {
+                                setDeliverVideo(video);
+                                setDriveLink("");
+                              }}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              {isPt ? "Entregar" : "Deliver"}
+                            </Button>
+                          )}
+
+                          {key === "delivered" && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              {isPt ? "Entregue" : "Delivered"}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
 
       {/* Deliver Dialog */}
-      <Dialog open={!!deliverDialog} onOpenChange={(o) => !o && setDeliverDialog(null)}>
+      <Dialog open={!!deliverVideo} onOpenChange={(o) => !o && setDeliverVideo(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5" />
-              {isPt ? "Publicar para cliente" : "Publish to client"}
+              {isPt ? "Entregar vídeo final" : "Deliver final video"}
             </DialogTitle>
           </DialogHeader>
-          {deliverDialog && (
+          {deliverVideo && (
             <div className="space-y-4">
               <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
-                <p><strong>{isPt ? "Cliente:" : "Client:"}</strong> {deliverDialog.user_name || deliverDialog.user_email}</p>
-                <p><strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {deliverDialog.title}</p>
-                {deliverDialog.plan_name && <p><strong>{isPt ? "Plano:" : "Plan:"}</strong> {deliverDialog.plan_name}</p>}
+                <p>
+                  <strong>{isPt ? "Cliente:" : "Client:"}</strong>{" "}
+                  {deliverVideo.user_name || deliverVideo.user_email}
+                </p>
+                <p>
+                  <strong>{isPt ? "Vídeo bruto:" : "Raw video:"}</strong> {deliverVideo.title}
+                </p>
               </div>
-
               <div>
                 <Label>{isPt ? "Link do vídeo final (Google Drive)" : "Final video link (Google Drive)"}</Label>
                 <Input
@@ -394,7 +496,7 @@ const AdminProduction = () => {
                   <div className="mt-3 rounded-lg border overflow-hidden">
                     <iframe
                       src={`https://drive.google.com/file/d/${fileId}/preview`}
-                      className="w-full aspect-[9/16] max-h-[200px]"
+                      className="w-full aspect-video"
                       allow="autoplay"
                     />
                   </div>
@@ -403,19 +505,19 @@ const AdminProduction = () => {
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeliverDialog(null)}>
+            <Button variant="outline" onClick={() => setDeliverVideo(null)}>
               {isPt ? "Cancelar" : "Cancel"}
             </Button>
             <Button
               disabled={!fileId || deliverMutation.isPending}
-              onClick={() => deliverDialog && deliverMutation.mutate({ rawVideo: deliverDialog, link: driveLink })}
+              onClick={() => deliverVideo && deliverMutation.mutate({ rawVideo: deliverVideo, link: driveLink })}
             >
               {deliverMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Send className="mr-2 h-4 w-4" />
               )}
-              {isPt ? "Publicar" : "Publish"}
+              {isPt ? "Entregar" : "Deliver"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -423,217 +525,5 @@ const AdminProduction = () => {
     </div>
   );
 };
-
-// ---------- Kanban Card ----------
-function KanbanCard({
-  video,
-  column,
-  isPt,
-  onStartEditing,
-  onMarkReady,
-  onDeliver,
-  onDownload,
-  onDeleteRawFile,
-  isUpdating,
-}: {
-  video: RawVideo;
-  column: KanbanColumn;
-  isPt: boolean;
-  onStartEditing: () => void;
-  onMarkReady: () => void;
-  onDeliver: () => void;
-  onDownload: () => void;
-  onDeleteRawFile: () => void;
-  isUpdating: boolean;
-}) {
-  const timeAgo = getTimeAgo(video.created_at, isPt);
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
-    >
-      {/* Client info */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted">
-          <User className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">
-            {video.user_name || video.user_email?.split("@")[0] || "—"}
-          </p>
-          <div className="flex items-center gap-1.5">
-            {video.plan_name && (
-              <Badge variant="outline" className="text-[9px] h-4 px-1.5">
-                {video.plan_name}
-              </Badge>
-            )}
-            <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
-          </div>
-        </div>
-        {video.youtube_channel && (
-          <a
-            href={video.youtube_channel.startsWith("http") ? video.youtube_channel : `https://youtube.com/channel/${video.youtube_channel}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary"
-          >
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </div>
-
-      {/* Video title */}
-      <p className="text-xs font-medium mb-1.5 line-clamp-2">{video.title}</p>
-      {video.notes && (
-        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2">{video.notes}</p>
-      )}
-
-      {/* File info */}
-      {video.file_path && (
-        <div className="flex items-center gap-2 mb-2 text-[11px] text-muted-foreground">
-          <Film className="h-3 w-3 shrink-0" />
-          <span className="truncate">{video.file_name || "video"}</span>
-          {video.file_size && (
-            <span className="shrink-0">{(video.file_size / 1024 / 1024).toFixed(1)} MB</span>
-          )}
-        </div>
-      )}
-
-      {/* Delivered video iframe */}
-      {column === "delivered" && video.delivered_drive_link && (() => {
-        const fId = extractDriveFileId(video.delivered_drive_link);
-        return fId ? (
-          <div className="mb-2 rounded-lg border overflow-hidden">
-            <iframe
-              src={`https://drive.google.com/file/d/${fId}/preview`}
-              className="w-full aspect-[9/16] max-h-[180px]"
-              allow="autoplay"
-            />
-          </div>
-        ) : null;
-      })()}
-
-      {/* Actions per column */}
-      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t">
-        {column === "waiting" && (
-          <>
-            {video.file_path && (
-              <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onDownload}>
-                <Download className="h-3 w-3" />
-                {isPt ? "Baixar" : "Download"}
-              </Button>
-            )}
-            <Button
-              size="sm"
-              className="h-7 gap-1 text-xs ml-auto"
-              disabled={isUpdating}
-              onClick={onStartEditing}
-            >
-              <Play className="h-3 w-3" />
-              {isPt ? "Começar edição" : "Start editing"}
-            </Button>
-          </>
-        )}
-
-        {column === "editing" && (
-          <>
-            {video.file_path && (
-              <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onDownload}>
-                <Download className="h-3 w-3" />
-              </Button>
-            )}
-            <Button
-              size="sm"
-              className="h-7 gap-1 text-xs ml-auto"
-              disabled={isUpdating}
-              onClick={onMarkReady}
-            >
-              <Package className="h-3 w-3" />
-              {isPt ? "Marcar pronto" : "Mark ready"}
-            </Button>
-          </>
-        )}
-
-        {column === "ready" && (
-          <>
-            {video.file_path && (
-              <>
-                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onDownload}>
-                  <Download className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
-                  onClick={onDeleteRawFile}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </>
-            )}
-            <Button
-              size="sm"
-              className="h-7 gap-1 text-xs ml-auto"
-              onClick={onDeliver}
-            >
-              <Send className="h-3 w-3" />
-              {isPt ? "Publicar" : "Publish"}
-            </Button>
-          </>
-        )}
-
-        {column === "delivered" && (
-          <>
-            {video.file_path && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
-                onClick={onDeleteRawFile}
-              >
-                <Trash2 className="h-3 w-3" />
-                {isPt ? "Apagar bruto" : "Delete raw"}
-              </Button>
-            )}
-            {video.delivered_drive_link && (
-              <a
-                href={video.delivered_drive_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto"
-              >
-                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs">
-                  <ExternalLink className="h-3 w-3" />
-                  Drive
-                </Button>
-              </a>
-            )}
-            {video.delivered_at && (
-              <span className="text-[10px] text-muted-foreground">
-                {new Date(video.delivered_at).toLocaleDateString()}
-              </span>
-            )}
-          </>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-// ---------- Helpers ----------
-function getTimeAgo(dateStr: string, isPt: boolean): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return isPt ? "agora" : "now";
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-}
 
 export default AdminProduction;
