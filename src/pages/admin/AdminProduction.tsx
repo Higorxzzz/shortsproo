@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Upload, AlertCircle } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
-import VideoUploadDialog from "@/components/VideoUploadDialog";
+import AddVideoLinkDialog from "@/components/AddVideoLinkDialog";
 
 type TaskWithUser = {
   id: string;
