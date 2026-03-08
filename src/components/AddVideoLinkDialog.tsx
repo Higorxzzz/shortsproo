@@ -104,14 +104,6 @@ const AddVideoLinkDialog = ({
             {planName && <p><strong>{isPt ? "Plano:" : "Plan:"}</strong> {planName}</p>}
           </div>
 
-          <div>
-            <Label>{isPt ? "Título do vídeo" : "Video title"}</Label>
-            <Input
-              value={videoTitle}
-              onChange={(e) => setVideoTitle(e.target.value)}
-              placeholder={isPt ? "Ex: Top 5 dicas..." : "Ex: Top 5 tips..."}
-            />
-          </div>
 
           <div>
             <Label>{isPt ? "Link do Google Drive" : "Google Drive Link"}</Label>
