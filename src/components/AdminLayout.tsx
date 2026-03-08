@@ -1,11 +1,12 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Film, CreditCard, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const adminLinks = [
   { to: "/admin", icon: LayoutDashboard, labelKey: "dashboard" },
+  { to: "/admin/production", icon: ListTodo, labelKey: "production" },
   { to: "/admin/users", icon: Users, labelKey: "users" },
   { to: "/admin/plans", icon: CreditCard, labelKey: "plans" },
   { to: "/admin/videos", icon: Film, labelKey: "videos" },
@@ -22,6 +23,7 @@ const AdminLayout = () => {
 
   const labels: Record<string, string> = {
     dashboard: t.admin.title,
+    production: t.language === "pt" ? "Produção" : "Production",
     users: t.admin.users,
     plans: t.admin.plans,
     videos: t.admin.videos,
