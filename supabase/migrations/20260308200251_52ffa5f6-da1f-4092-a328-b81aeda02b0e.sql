@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN youtube_channel_id text;

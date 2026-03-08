@@ -163,6 +163,7 @@ export type Database = {
           suspended: boolean | null
           updated_at: string
           youtube_channel: string | null
+          youtube_channel_id: string | null
         }
         Insert: {
           country?: string | null
@@ -175,6 +176,7 @@ export type Database = {
           suspended?: boolean | null
           updated_at?: string
           youtube_channel?: string | null
+          youtube_channel_id?: string | null
         }
         Update: {
           country?: string | null
@@ -187,6 +189,7 @@ export type Database = {
           suspended?: boolean | null
           updated_at?: string
           youtube_channel?: string | null
+          youtube_channel_id?: string | null
         }
         Relationships: [
           {
