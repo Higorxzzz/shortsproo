@@ -21,6 +21,7 @@ type TaskWithUser = {
   status: string;
   video_id: string | null;
   completed_at: string | null;
+  completed_by: string | null;
   notes: string | null;
   user_name: string | null;
   user_email: string | null;
@@ -30,6 +31,8 @@ type TaskWithUser = {
   youtube_channel: string | null;
   country: string | null;
   language: string | null;
+  video_title: string | null;
+  video_drive_link: string | null;
 };
 
 const PRIORITY_ORDER: Record<string, number> = { Pro: 1, Growth: 2, Creator: 3, Starter: 4 };
@@ -69,12 +72,24 @@ const AdminProduction = () => {
         .in("id", userIds);
       const { data: plans } = await supabase.from("plans").select("id, name, shorts_per_day, price");
 
+      // Fetch linked videos
+      const videoIds = taskRows.map((t) => t.video_id).filter(Boolean) as string[];
+      const videoMap = new Map<string, { title: string; drive_link: string }>();
+      if (videoIds.length > 0) {
+        const { data: videos } = await supabase
+          .from("videos")
+          .select("id, title, drive_link")
+          .in("id", videoIds);
+        (videos || []).forEach((v) => videoMap.set(v.id, { title: v.title, drive_link: v.drive_link }));
+      }
+
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       const planMap = new Map((plans || []).map((p) => [p.id, p]));
 
       return taskRows.map((task) => {
         const profile = profileMap.get(task.user_id);
         const plan = profile?.plan_id ? planMap.get(profile.plan_id) : null;
+        const video = task.video_id ? videoMap.get(task.video_id) : null;
         return {
           ...task,
           user_name: profile?.name || null,
@@ -85,6 +100,8 @@ const AdminProduction = () => {
           youtube_channel: profile?.youtube_channel || null,
           country: profile?.country || null,
           language: profile?.language || null,
+          video_title: video?.title || null,
+          video_drive_link: video?.drive_link || null,
         } as TaskWithUser;
       });
     },
@@ -282,34 +299,64 @@ const AdminProduction = () => {
                   <div className="flex flex-wrap gap-2">
                     {group.tasks.map((task) => {
                       const isCommentsOpen = expandedComments.has(task.id);
+                      const isDelivered = task.status === "completed" && task.video_id;
                       return (
                         <div key={task.id} className="w-full">
-                          <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                            task.status === "completed"
-                              ? "border-primary/30 bg-primary/10 text-primary"
+                          <div className={`flex flex-col gap-1.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                            isDelivered
+                              ? "border-primary/30 bg-primary/5"
+                              : task.status === "completed"
+                              ? "border-primary/20 bg-primary/5"
                               : "border-border bg-card"
                           }`}>
-                            {task.status === "completed" ? (
-                              <CheckCircle2 className="h-4 w-4" />
-                            ) : (
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <span>Short {task.task_number}</span>
-                            <div className="ml-auto flex items-center gap-1">
-                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => {
-                                const next = new Set(expandedComments);
-                                if (isCommentsOpen) next.delete(task.id); else next.add(task.id);
-                                setExpandedComments(next);
-                              }}>
-                                <MessageSquare className="h-3 w-3" />
-                              </Button>
-                              {task.status !== "completed" && (
-                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setUploadTask(task)}>
-                                  <Link2 className="mr-1 h-3 w-3" />
-                                  {isPt ? "Link" : "Link"}
-                                </Button>
+                            <div className="flex items-center gap-2">
+                              {isDelivered ? (
+                                <CheckCircle2 className="h-4 w-4 text-primary" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-muted-foreground" />
                               )}
+                              <span className="font-medium">Short {task.task_number}</span>
+                              {isDelivered ? (
+                                <Badge className="ml-1 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                                  {isPt ? "✓ Enviado" : "✓ Delivered"}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="ml-1 text-[10px] text-muted-foreground">
+                                  {isPt ? "Pendente" : "Pending"}
+                                </Badge>
+                              )}
+                              <div className="ml-auto flex items-center gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => {
+                                  const next = new Set(expandedComments);
+                                  if (isCommentsOpen) next.delete(task.id); else next.add(task.id);
+                                  setExpandedComments(next);
+                                }}>
+                                  <MessageSquare className="h-3 w-3" />
+                                </Button>
+                                {!isDelivered && (
+                                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setUploadTask(task)}>
+                                    <Link2 className="mr-1 h-3 w-3" />
+                                    {isPt ? "Link" : "Link"}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
+                            {isDelivered && task.video_title && (
+                              <div className="ml-6 flex items-center gap-2 text-xs text-muted-foreground">
+                                <Film className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{task.video_title}</span>
+                                {task.video_drive_link && (
+                                  <a href={task.video_drive_link} target="_blank" rel="noopener noreferrer" className="shrink-0 text-primary hover:underline">
+                                    <Link2 className="h-3 w-3" />
+                                  </a>
+                                )}
+                                {task.completed_at && (
+                                  <span className="shrink-0 text-muted-foreground/60">
+                                    {new Date(task.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <TaskComments taskId={task.id} isOpen={isCommentsOpen} />
                         </div>
