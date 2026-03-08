@@ -88,7 +88,7 @@ const RawVideoUpload = () => {
 
       const { error: dbError } = await supabase.from("raw_videos").insert({
         user_id: user.id,
-        title: title.trim(),
+        title: file.name.replace(/\.[^/.]+$/, ""),
         notes: notes.trim() || null,
         file_path: filePath,
         file_name: file.name,
