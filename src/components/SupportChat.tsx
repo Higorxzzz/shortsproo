@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Paperclip, Image, FileText, Film } from "lucide-react";
+import { MessageCircle, X, Send, Paperclip, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,12 @@ type Message = {
   file_type?: string | null;
 };
 
+type QuickReply = {
+  id: string;
+  question: string;
+  auto_response: string;
+};
+
 const FilePreview = ({ url, type }: { url: string; type: string }) => {
   if (type.startsWith("image/")) {
     return (
@@ -26,9 +32,7 @@ const FilePreview = ({ url, type }: { url: string; type: string }) => {
     );
   }
   if (type.startsWith("video/")) {
-    return (
-      <video src={url} controls className="max-w-full rounded-lg max-h-48 mt-1" />
-    );
+    return <video src={url} controls className="max-w-full rounded-lg max-h-48 mt-1" />;
   }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-xs underline">
@@ -47,30 +51,34 @@ export const SupportChat = () => {
   const [chatId, setChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPt = t.language === "pt";
+
+  // Load quick replies
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("support_quick_replies")
+      .select("id, question, auto_response")
+      .eq("active", true)
+      .order("sort_order", { ascending: true })
+      .then(({ data }) => { if (data) setQuickReplies(data); });
+  }, [user]);
 
   useEffect(() => {
     if (!user || !open) return;
     const getOrCreateChat = async () => {
       setLoading(true);
       const { data: existing } = await supabase
-        .from("support_chats")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("status", "open")
-        .limit(1)
-        .single();
-
+        .from("support_chats").select("id")
+        .eq("user_id", user.id).eq("status", "open").limit(1).single();
       if (existing) {
         setChatId(existing.id);
       } else {
         const { data: created } = await supabase
-          .from("support_chats")
-          .insert({ user_id: user.id })
-          .select("id")
-          .single();
+          .from("support_chats").insert({ user_id: user.id }).select("id").single();
         if (created) setChatId(created.id);
       }
       setLoading(false);
@@ -82,20 +90,16 @@ export const SupportChat = () => {
     if (!chatId) return;
     const loadMessages = async () => {
       const { data } = await supabase
-        .from("support_messages")
-        .select("*")
-        .eq("chat_id", chatId)
-        .order("created_at", { ascending: true });
+        .from("support_messages").select("*")
+        .eq("chat_id", chatId).order("created_at", { ascending: true });
       if (data) setMessages(data as Message[]);
     };
     loadMessages();
-
     const channel = supabase
       .channel(`support-chat-${chatId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `chat_id=eq.${chatId}` },
         (payload) => setMessages((prev) => [...prev, payload.new as Message])
-      )
-      .subscribe();
+      ).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [chatId]);
 
@@ -110,15 +114,10 @@ export const SupportChat = () => {
     const path = `${chatId}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("support-attachments").upload(path, file);
     if (error) { setUploading(false); return; }
-
     const { data: urlData } = supabase.storage.from("support-attachments").getPublicUrl(path);
-
     await supabase.from("support_messages").insert({
-      chat_id: chatId,
-      sender_id: user.id,
-      content: file.name,
-      file_url: urlData.publicUrl,
-      file_type: file.type,
+      chat_id: chatId, sender_id: user.id, content: file.name,
+      file_url: urlData.publicUrl, file_type: file.type,
     });
     setUploading(false);
   };
@@ -129,12 +128,27 @@ export const SupportChat = () => {
     e.target.value = "";
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !chatId || !user) return;
+  const sendMessage = async (content?: string) => {
+    const text = content || newMessage.trim();
+    if (!text || !chatId || !user) return;
     await supabase.from("support_messages").insert({
-      chat_id: chatId, sender_id: user.id, content: newMessage.trim(),
+      chat_id: chatId, sender_id: user.id, content: text,
     });
-    setNewMessage("");
+    if (!content) setNewMessage("");
+  };
+
+  const sendQuickReply = async (qr: QuickReply) => {
+    if (!chatId || !user) return;
+    // Send user's question
+    await supabase.from("support_messages").insert({
+      chat_id: chatId, sender_id: user.id, content: qr.question,
+    });
+    // Send auto-response (as "system" - using a placeholder sender_id of zeros)
+    setTimeout(async () => {
+      await supabase.from("support_messages").insert({
+        chat_id: chatId, sender_id: "00000000-0000-0000-0000-000000000000", content: qr.auto_response,
+      });
+    }, 800);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -142,6 +156,8 @@ export const SupportChat = () => {
   };
 
   if (!user) return null;
+
+  const showQuickReplies = messages.length === 0 && quickReplies.length > 0 && !loading;
 
   return (
     <>
@@ -169,17 +185,36 @@ export const SupportChat = () => {
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             {loading && <p className="text-center text-xs text-muted-foreground">{isPt ? "Carregando..." : "Loading..."}</p>}
+
             {!loading && messages.length === 0 && (
-              <p className="text-center text-xs text-muted-foreground pt-8">
-                {isPt ? "Envie uma mensagem para iniciar o chat" : "Send a message to start the chat"}
+              <p className="text-center text-xs text-muted-foreground pt-4">
+                {isPt ? "Como podemos ajudar?" : "How can we help?"}
               </p>
             )}
+
+            {showQuickReplies && (
+              <div className="flex flex-col gap-2 pt-2">
+                {quickReplies.map((qr) => (
+                  <button
+                    key={qr.id}
+                    onClick={() => sendQuickReply(qr)}
+                    className="text-left rounded-xl border border-border px-3 py-2.5 text-sm transition-colors hover:bg-primary/5 hover:border-primary/30"
+                  >
+                    {qr.question}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {messages.map((msg) => {
               const isMe = msg.sender_id === user?.id;
+              const isAutoReply = msg.sender_id === "00000000-0000-0000-0000-000000000000";
               return (
                 <div key={msg.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
                   <div className={cn("max-w-[75%] rounded-2xl px-3 py-2 text-sm",
-                    isMe ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-foreground rounded-bl-md"
+                    isMe ? "bg-primary text-primary-foreground rounded-br-md"
+                      : isAutoReply ? "bg-accent text-accent-foreground rounded-bl-md"
+                      : "bg-muted text-foreground rounded-bl-md"
                   )}>
                     {msg.file_url && msg.file_type && <FilePreview url={msg.file_url} type={msg.file_type} />}
                     {!msg.file_url && <p>{msg.content}</p>}
@@ -198,11 +233,9 @@ export const SupportChat = () => {
               <Button size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="shrink-0">
                 <Paperclip className="h-4 w-4" />
               </Button>
-              <Input
-                value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleKeyDown}
-                placeholder={isPt ? "Digite sua mensagem..." : "Type your message..."} className="text-sm"
-              />
-              <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim() || uploading}>
+              <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleKeyDown}
+                placeholder={isPt ? "Digite sua mensagem..." : "Type your message..."} className="text-sm" />
+              <Button size="icon" onClick={() => sendMessage()} disabled={!newMessage.trim() || uploading}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
