@@ -204,15 +204,37 @@ const AdminRawVideos = () => {
                                 </Button>
                               </>
                             )}
+                            {video.status === "waiting" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs text-orange-600"
+                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "editing" })}
+                              >
+                                <Film className="mr-1 h-3 w-3" />
+                                {isPt ? "Editar" : "Edit"}
+                              </Button>
+                            )}
                             {video.status === "editing" && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 text-xs"
-                                onClick={() => markCompleted.mutate(video.id)}
+                                className="h-7 text-xs text-emerald-600"
+                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "completed" })}
                               >
                                 <CheckCircle2 className="mr-1 h-3 w-3" />
                                 {isPt ? "Concluir" : "Complete"}
+                              </Button>
+                            )}
+                            {video.status !== "waiting" && video.status !== "completed" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs text-yellow-600"
+                                onClick={() => updateStatus.mutate({ videoId: video.id, status: "waiting" })}
+                              >
+                                <Clock className="mr-1 h-3 w-3" />
+                                {isPt ? "Aguardar" : "Wait"}
                               </Button>
                             )}
                             {!hasFile && video.status === "completed" && (
