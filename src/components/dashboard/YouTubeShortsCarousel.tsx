@@ -101,9 +101,6 @@ const YouTubeShortsCarousel = ({ channelId }: YouTubeShortsCarouselProps) => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {videos.length} {isPt ? "vídeos" : "videos"}
-              </Badge>
               <Button
                 variant="ghost"
                 size="icon"
