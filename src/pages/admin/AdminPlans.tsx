@@ -122,6 +122,14 @@ const AdminPlans = () => {
                       onBlur={(e) => { const v = Number(e.target.value); if (v !== plan.price) updatePlan.mutate({ id: plan.id, updates: { price: v } }); }}
                     />
                   </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      defaultValue={plan.price_second_month}
+                      className="h-8 w-24"
+                      onBlur={(e) => { const v = Number(e.target.value); if (v !== plan.price_second_month) updatePlan.mutate({ id: plan.id, updates: { price_second_month: v } }); }}
+                    />
+                  </TableCell>
                   <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{plan.description}</TableCell>
                   <TableCell>
                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deletePlan.mutate(plan.id)}>
