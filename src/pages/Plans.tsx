@@ -153,7 +153,7 @@ const Plans = () => {
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
                   <ul className="space-y-2 text-sm">
-                    {(plan.description || "").split("\n").filter(Boolean).map((line: string, li: number) => (
+                    {(plan.description || "").split("|").filter(Boolean).map((line: string, li: number) => (
                       <li key={li} className="flex items-start gap-2">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <span>{line}</span>
