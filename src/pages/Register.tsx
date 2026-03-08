@@ -69,21 +69,6 @@ const Register = () => {
               <Label>{t.auth.youtubeChannel}</Label>
               <Input value={form.youtube_channel} onChange={(e) => update("youtube_channel", e.target.value)} placeholder="https://youtube.com/@secanal" />
             </div>
-            <div>
-              <Label>{t.auth.country}</Label>
-              <Input value={form.country} onChange={(e) => update("country", e.target.value)} />
-            </div>
-            <div>
-              <Label>{t.auth.language}</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={form.language}
-                onChange={(e) => update("language", e.target.value)}
-              >
-                <option value="pt">Português</option>
-                <option value="en">English</option>
-              </select>
-            </div>
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "..." : t.auth.register}
             </Button>
