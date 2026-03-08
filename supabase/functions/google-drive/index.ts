@@ -12,7 +12,8 @@ interface ServiceAccountKey {
   token_uri: string;
 }
 
-// Create JWT for Google Service Account
+// ── JWT & Token ──────────────────────────────────────────────────────────────
+
 async function createJWT(sa: ServiceAccountKey): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
@@ -69,17 +70,20 @@ async function getAccessToken(sa: ServiceAccountKey): Promise<string> {
   return data.access_token;
 }
 
-const DRIVE_CONFIG_ERROR_PREFIX = "DRIVE_CONFIGURATION_ERROR:";
+// ── Error helpers ────────────────────────────────────────────────────────────
 
-function mapDriveErrorMessage(rawError: string): string {
-  if (rawError.includes("storageQuotaExceeded")) {
-    return `${DRIVE_CONFIG_ERROR_PREFIX} Service Account cannot upload to personal Google Drive storage. Configure GOOGLE_DRIVE_ROOT_FOLDER_ID as a folder inside a Shared Drive and add the Service Account as Content Manager/Manager.`;
+const CFG_ERR = "DRIVE_CONFIGURATION_ERROR:";
+
+function mapDriveError(raw: string): string {
+  if (raw.includes("storageQuotaExceeded")) {
+    return `${CFG_ERR} Service Account cannot upload to personal Google Drive storage. Use a Shared Drive folder as GOOGLE_DRIVE_ROOT_FOLDER_ID.`;
   }
-
-  return rawError;
+  return raw;
 }
 
-interface DriveFolderMetadata {
+// ── Drive metadata & validation ──────────────────────────────────────────────
+
+interface DriveMeta {
   id: string;
   name: string;
   mimeType: string;
@@ -87,156 +91,121 @@ interface DriveFolderMetadata {
   trashed?: boolean;
 }
 
-async function getFolderMetadata(accessToken: string, folderId: string): Promise<DriveFolderMetadata> {
+async function getMeta(token: string, fileId: string): Promise<DriveMeta> {
   const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType,driveId,trashed&supportsAllDrives=true`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,driveId,trashed&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${token}` } }
   );
-
   const data = await resp.json();
-  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Root folder lookup error: ${JSON.stringify(data)}`));
+  if (!resp.ok) throw new Error(mapDriveError(`Folder lookup error: ${JSON.stringify(data)}`));
   return data;
 }
 
-function validateRootFolder(metadata: DriveFolderMetadata) {
-  if (metadata.trashed) {
-    throw new Error(`${DRIVE_CONFIG_ERROR_PREFIX} Configured Google Drive root folder is in trash.`);
-  }
+/** Validates the root folder is a non-trashed folder inside a Shared Drive. Returns driveId. */
+function validateRoot(meta: DriveMeta): string {
+  if (meta.trashed) throw new Error(`${CFG_ERR} Root folder is in trash.`);
+  if (meta.mimeType !== "application/vnd.google-apps.folder")
+    throw new Error(`${CFG_ERR} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder.`);
+  if (!meta.driveId)
+    throw new Error(`${CFG_ERR} Root folder is NOT inside a Shared Drive. Service Accounts require a Shared Drive.`);
+  return meta.driveId;
+}
 
-  if (metadata.mimeType !== "application/vnd.google-apps.folder") {
-    throw new Error(`${DRIVE_CONFIG_ERROR_PREFIX} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder ID.`);
-  }
-
-  if (!metadata.driveId) {
-    throw new Error(
-      `${DRIVE_CONFIG_ERROR_PREFIX} Root folder is not inside a Shared Drive. Service Accounts require Shared Drive for uploads.`
+/**
+ * Validates an existing child folder is still valid (not trashed, correct driveId).
+ * Returns true if valid, false if stale/invalid.
+ */
+async function isValidChildFolder(token: string, folderId: string, expectedDriveId: string): Promise<boolean> {
+  try {
+    const meta = await getMeta(token, folderId);
+    return (
+      !meta.trashed &&
+      meta.mimeType === "application/vnd.google-apps.folder" &&
+      meta.driveId === expectedDriveId
     );
+  } catch {
+    return false;
   }
 }
 
-// Google Drive API helpers - all with supportsAllDrives for shared drive support
-async function createFolder(
-  accessToken: string,
-  name: string,
-  parentId: string
-): Promise<string> {
-  const resp = await fetch(
-    "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        mimeType: "application/vnd.google-apps.folder",
-        parents: [parentId],
-      }),
-    }
-  );
+// ── Drive CRUD ───────────────────────────────────────────────────────────────
+
+async function createFolder(token: string, name: string, parentId: string): Promise<string> {
+  const resp = await fetch("https://www.googleapis.com/drive/v3/files?supportsAllDrives=true", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] }),
+  });
   const data = await resp.json();
-  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Create folder error: ${JSON.stringify(data)}`));
+  if (!resp.ok) throw new Error(mapDriveError(`Create folder error: ${JSON.stringify(data)}`));
   return data.id;
 }
 
-async function findFolder(
-  accessToken: string,
-  name: string,
-  parentId: string,
-  driveId?: string
-): Promise<string | null> {
+async function findFolder(token: string, name: string, parentId: string, driveId: string): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const driveParams = driveId
-    ? `&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`
-    : "&corpora=allDrives&includeItemsFromAllDrives=true";
-
   const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true${driveParams}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`,
+    { headers: { Authorization: `Bearer ${token}` } }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Find folder error: ${JSON.stringify(data)}`));
+  if (!resp.ok) throw new Error(mapDriveError(`Find folder error: ${JSON.stringify(data)}`));
   return data.files?.[0]?.id || null;
 }
 
-async function setPublicPermission(accessToken: string, fileId: string) {
+async function setPublicPermission(token: string, fileId: string) {
   await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?supportsAllDrives=true`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ role: "reader", type: "anyone" }),
     }
   );
 }
 
-async function uploadFileResumable(
-  accessToken: string,
-  fileBytes: Uint8Array,
-  fileName: string,
-  parentId: string,
-  mimeType: string
+// ── Upload helpers ───────────────────────────────────────────────────────────
+
+async function uploadResumable(
+  token: string, bytes: Uint8Array, fileName: string, parentId: string, mime: string
 ): Promise<{ id: string; size: string }> {
   const initResp = await fetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,size&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "X-Upload-Content-Type": mimeType,
-        "X-Upload-Content-Length": String(fileBytes.length),
+        "X-Upload-Content-Type": mime,
+        "X-Upload-Content-Length": String(bytes.length),
       },
       body: JSON.stringify({ name: fileName, parents: [parentId] }),
     }
   );
-
-  if (!initResp.ok) {
-    const err = await initResp.text();
-    throw new Error(mapDriveErrorMessage(`Resumable init error: ${err}`));
-  }
+  if (!initResp.ok) throw new Error(mapDriveError(`Resumable init error: ${await initResp.text()}`));
 
   const uploadUri = initResp.headers.get("Location");
   if (!uploadUri) throw new Error("No upload URI returned");
 
   const uploadResp = await fetch(uploadUri, {
     method: "PUT",
-    headers: {
-      "Content-Length": String(fileBytes.length),
-      "Content-Type": mimeType,
-    },
-    body: fileBytes,
+    headers: { "Content-Length": String(bytes.length), "Content-Type": mime },
+    body: bytes,
   });
-
   const data = await uploadResp.json();
-  if (!uploadResp.ok) throw new Error(mapDriveErrorMessage(`Resumable upload error: ${JSON.stringify(data)}`));
-  return { id: data.id, size: data.size || String(fileBytes.length) };
+  if (!uploadResp.ok) throw new Error(mapDriveError(`Upload error: ${JSON.stringify(data)}`));
+  return { id: data.id, size: data.size || String(bytes.length) };
 }
 
-async function uploadFileMultipart(
-  accessToken: string,
-  fileBytes: Uint8Array,
-  fileName: string,
-  parentId: string,
-  mimeType: string
+async function uploadMultipart(
+  token: string, bytes: Uint8Array, fileName: string, parentId: string, mime: string
 ): Promise<{ id: string; size: string }> {
   const metadata = JSON.stringify({ name: fileName, parents: [parentId] });
   const boundary = "-------314159265358979323846";
   const delimiter = `\r\n--${boundary}\r\n`;
   const closeDelimiter = `\r\n--${boundary}--`;
-
   const metaPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${metadata}`;
-  const filePart = `${delimiter}Content-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n`;
-
-  const base64File = btoa(String.fromCharCode(...fileBytes));
+  const filePart = `${delimiter}Content-Type: ${mime}\r\nContent-Transfer-Encoding: base64\r\n\r\n`;
+  const base64File = btoa(String.fromCharCode(...bytes));
   const body = `${metaPart}${filePart}${base64File}${closeDelimiter}`;
 
   const resp = await fetch(
@@ -244,16 +213,95 @@ async function uploadFileMultipart(
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": `multipart/related; boundary=${boundary.replace(/^-+/, "")}`,
       },
       body,
     }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Upload error: ${JSON.stringify(data)}`));
+  if (!resp.ok) throw new Error(mapDriveError(`Upload error: ${JSON.stringify(data)}`));
   return { id: data.id, size: data.size || "0" };
 }
+
+// ── Resolve client folder (with stale-folder auto-correction) ────────────────
+
+async function resolveClientFolder(
+  supabase: any,
+  token: string,
+  clientUserId: string,
+  rootFolderId: string,
+  sharedDriveId: string
+): Promise<string> {
+  // Query filtering by parent_folder_id to avoid picking up old folders from personal drive
+  const { data: existingFolder } = await supabase
+    .from("drive_folders")
+    .select("drive_folder_id")
+    .eq("user_id", clientUserId)
+    .eq("folder_type", "client")
+    .eq("parent_folder_id", rootFolderId)
+    .maybeSingle();
+
+  if (existingFolder?.drive_folder_id) {
+    // Double-check the folder is still valid on Drive
+    const valid = await isValidChildFolder(token, existingFolder.drive_folder_id, sharedDriveId);
+    if (valid) return existingFolder.drive_folder_id;
+    console.warn(`Stale client folder ${existingFolder.drive_folder_id} detected, recreating.`);
+  }
+
+  // Need to create a new folder
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, youtube_channel")
+    .eq("id", clientUserId)
+    .single();
+
+  const folderName = (profile?.youtube_channel || profile?.name || clientUserId)
+    .replace(/[^a-zA-Z0-9_\-\s]/g, "")
+    .replace(/\s+/g, "_");
+
+  const folderId = await createFolder(token, folderName, rootFolderId);
+
+  await supabase.from("drive_folders").insert({
+    user_id: clientUserId,
+    folder_name: folderName,
+    drive_folder_id: folderId,
+    parent_folder_id: rootFolderId,
+    folder_type: "client",
+  });
+
+  return folderId;
+}
+
+// ── Resolve month folder (with stale-folder auto-correction) ────────────────
+
+async function resolveMonthFolder(
+  supabase: any,
+  token: string,
+  clientUserId: string,
+  clientFolderId: string,
+  sharedDriveId: string
+): Promise<string> {
+  const monthKey = new Date().toISOString().slice(0, 7);
+
+  // First try to find in Drive directly (source of truth)
+  let monthFolderId = await findFolder(token, monthKey, clientFolderId, sharedDriveId);
+
+  if (!monthFolderId) {
+    monthFolderId = await createFolder(token, monthKey, clientFolderId);
+    await supabase.from("drive_folders").insert({
+      user_id: clientUserId,
+      folder_name: monthKey,
+      drive_folder_id: monthFolderId,
+      parent_folder_id: clientFolderId,
+      folder_type: "month",
+    });
+  }
+
+  return monthFolderId;
+}
+
+// ── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -291,7 +339,6 @@ Deno.serve(async (req) => {
     }
 
     const userId = user.id;
-
     const { data: isTeam } = await supabase.rpc("is_team_member", { _user_id: userId });
     if (!isTeam) {
       return new Response(JSON.stringify({ error: "Forbidden: team members only" }), {
@@ -301,34 +348,38 @@ Deno.serve(async (req) => {
     }
 
     const sa: ServiceAccountKey = JSON.parse(saJson);
-    const accessToken = await getAccessToken(sa);
+    const token = await getAccessToken(sa);
 
-    const rootMetadata = await getFolderMetadata(accessToken, rootFolderId);
-    validateRootFolder(rootMetadata);
-    const sharedDriveId = rootMetadata.driveId as string;
+    // ── Validate root folder is in Shared Drive ──
+    const rootMeta = await getMeta(token, rootFolderId);
+    const sharedDriveId = validateRoot(rootMeta);
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
-    // ACTION: create-client-folder
+    // ── ACTION: create-client-folder ──
     if (action === "create-client-folder") {
       const { client_user_id, folder_name } = await req.json();
 
+      // Filter by parent to avoid stale refs
       const { data: existing } = await supabase
         .from("drive_folders")
         .select("drive_folder_id")
         .eq("user_id", client_user_id)
         .eq("folder_type", "client")
+        .eq("parent_folder_id", rootFolderId)
         .maybeSingle();
 
       if (existing?.drive_folder_id) {
-        return new Response(JSON.stringify({ folder_id: existing.drive_folder_id }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        const valid = await isValidChildFolder(token, existing.drive_folder_id, sharedDriveId);
+        if (valid) {
+          return new Response(JSON.stringify({ folder_id: existing.drive_folder_id }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
-      const driveFolderId = await createFolder(accessToken, folder_name, rootFolderId);
-
+      const driveFolderId = await createFolder(token, folder_name, rootFolderId);
       await supabase.from("drive_folders").insert({
         user_id: client_user_id,
         folder_name,
@@ -342,7 +393,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ACTION: upload
+    // ── ACTION: upload ──
     if (action === "upload") {
       const formData = await req.formData();
       const file = formData.get("file") as File;
@@ -364,64 +415,17 @@ Deno.serve(async (req) => {
         .single();
 
       try {
-        let clientFolderId: string;
-        const { data: clientFolder } = await supabase
-          .from("drive_folders")
-          .select("drive_folder_id")
-          .eq("user_id", clientUserId)
-          .eq("folder_type", "client")
-          .maybeSingle();
-
-        if (clientFolder?.drive_folder_id) {
-          clientFolderId = clientFolder.drive_folder_id;
-        } else {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("name, youtube_channel")
-            .eq("id", clientUserId)
-            .single();
-
-          const folderName = (profile?.youtube_channel || profile?.name || clientUserId)
-            .replace(/[^a-zA-Z0-9_\-\s]/g, "")
-            .replace(/\s+/g, "_");
-
-          clientFolderId = await createFolder(accessToken, folderName, rootFolderId);
-
-          await supabase.from("drive_folders").insert({
-            user_id: clientUserId,
-            folder_name: folderName,
-            drive_folder_id: clientFolderId,
-            parent_folder_id: rootFolderId,
-            folder_type: "client",
-          });
-        }
-
-        const monthKey = new Date().toISOString().slice(0, 7);
-        let monthFolderId = await findFolder(accessToken, monthKey, clientFolderId, sharedDriveId);
-
-        if (!monthFolderId) {
-          monthFolderId = await createFolder(accessToken, monthKey, clientFolderId);
-
-          await supabase.from("drive_folders").insert({
-            user_id: clientUserId,
-            folder_name: monthKey,
-            drive_folder_id: monthFolderId,
-            parent_folder_id: clientFolderId,
-            folder_type: "month",
-          });
-        }
+        const clientFolderId = await resolveClientFolder(supabase, token, clientUserId, rootFolderId, sharedDriveId);
+        const monthFolderId = await resolveMonthFolder(supabase, token, clientUserId, clientFolderId, sharedDriveId);
 
         const fileBytes = new Uint8Array(await file.arrayBuffer());
         const mimeType = file.type || "video/mp4";
 
-        let result;
-        if (fileBytes.length > 5 * 1024 * 1024) {
-          result = await uploadFileResumable(accessToken, fileBytes, file.name, monthFolderId, mimeType);
-        } else {
-          result = await uploadFileMultipart(accessToken, fileBytes, file.name, monthFolderId, mimeType);
-        }
+        const result = fileBytes.length > 5 * 1024 * 1024
+          ? await uploadResumable(token, fileBytes, file.name, monthFolderId, mimeType)
+          : await uploadMultipart(token, fileBytes, file.name, monthFolderId, mimeType);
 
-        await setPublicPermission(accessToken, result.id);
+        await setPublicPermission(token, result.id);
 
         const driveLink = `https://drive.google.com/file/d/${result.id}/view`;
         const downloadLink = `https://drive.google.com/uc?export=download&id=${result.id}`;
@@ -464,10 +468,7 @@ Deno.serve(async (req) => {
         }
 
         if (logEntry?.id) {
-          await supabase
-            .from("upload_logs")
-            .update({ status: "completed" })
-            .eq("id", logEntry.id);
+          await supabase.from("upload_logs").update({ status: "completed" }).eq("id", logEntry.id);
         }
 
         return new Response(
@@ -483,10 +484,7 @@ Deno.serve(async (req) => {
       } catch (uploadError: unknown) {
         if (logEntry?.id) {
           const errMsg = uploadError instanceof Error ? uploadError.message : "Unknown error";
-          await supabase
-            .from("upload_logs")
-            .update({ status: "failed", error_message: errMsg })
-            .eq("id", logEntry.id);
+          await supabase.from("upload_logs").update({ status: "failed", error_message: errMsg }).eq("id", logEntry.id);
         }
         throw uploadError;
       }
@@ -499,10 +497,10 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error("Google Drive function error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
-    const isConfigError = msg.startsWith(DRIVE_CONFIG_ERROR_PREFIX);
+    const isConfigError = msg.startsWith(CFG_ERR);
 
     return new Response(
-      JSON.stringify({ error: isConfigError ? msg.replace(DRIVE_CONFIG_ERROR_PREFIX, "").trim() : msg }),
+      JSON.stringify({ error: isConfigError ? msg.replace(CFG_ERR, "").trim() : msg }),
       {
         status: isConfigError ? 400 : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
