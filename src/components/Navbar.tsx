@@ -3,6 +3,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 import { Menu, X, Zap } from "lucide-react";
 import { useState } from "react";
 
@@ -26,20 +27,21 @@ export const Navbar = () => {
         </Link>
 
         {/* Desktop */}
-        <div className="hidden items-center gap-4 md:flex">
-          <Link to="/plans" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <div className="hidden items-center gap-2 md:flex">
+          <Link to="/plans" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
             {t.nav.plans}
           </Link>
           {user && (
-            <Link to="/dashboard" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <Link to="/dashboard" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
               {t.nav.dashboard}
             </Link>
           )}
           {isAdmin && (
-            <Link to="/admin" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <Link to="/admin" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
               {t.nav.admin}
             </Link>
           )}
+          <ThemeToggle />
           <LanguageSwitcher />
           {user ? (
             <Button variant="ghost" size="sm" onClick={handleSignOut}>{t.nav.logout}</Button>
@@ -52,9 +54,12 @@ export const Navbar = () => {
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button onClick={() => setMobileOpen(!mobileOpen)}>
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
