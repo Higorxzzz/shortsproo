@@ -242,6 +242,27 @@ const AdminChats = () => {
                   <p className="text-sm font-semibold">{selectedChat?.user_name}</p>
                   <p className="text-xs text-muted-foreground">{selectedChat?.user_email}</p>
                 </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{isPt ? "Limpar conversa?" : "Clear conversation?"}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {isPt ? "Todas as mensagens serão excluídas permanentemente." : "All messages will be permanently deleted."}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{isPt ? "Cancelar" : "Cancel"}</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        {isPt ? "Excluir" : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
