@@ -259,7 +259,7 @@ const AdminProduction = () => {
                         <CardTitle className="text-base">{group.user.user_name || group.user.user_email || "—"}</CardTitle>
                         {group.user.youtube_channel ? (
                           <a href={`https://www.youtube.com/channel/${group.user.youtube_channel}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                            youtube.com/channel/{group.user.youtube_channel}
+                            {group.user.user_email || group.user.youtube_channel}
                           </a>
                         ) : (
                           <p className="text-xs text-muted-foreground">{group.user.user_email}</p>
