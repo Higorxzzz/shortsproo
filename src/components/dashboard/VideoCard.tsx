@@ -4,7 +4,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, ExternalLink, Film, Play } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
+
+function extractFileId(video: any): string | null {
+  if (video.drive_file_id) return video.drive_file_id;
+  const match = video.drive_link?.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 interface VideoCardProps {
   video: any;
@@ -23,18 +29,10 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["videos"] }),
   });
 
-  const downloadUrl = video.drive_file_id
-    ? `https://drive.google.com/uc?export=download&id=${video.drive_file_id}`
-    : video.drive_link;
-  const viewUrl = video.drive_file_id
-    ? `https://drive.google.com/file/d/${video.drive_file_id}/view`
-    : video.drive_link;
-
-  const fileSize = video.file_size
-    ? video.file_size < 1024 * 1024
-      ? `${(video.file_size / 1024).toFixed(1)} KB`
-      : `${(video.file_size / (1024 * 1024)).toFixed(1)} MB`
-    : null;
+  const fileId = extractFileId(video);
+  const previewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
+  const downloadUrl = fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : video.drive_link;
+  const viewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/view` : video.drive_link;
 
   const dateStr = new Date(video.uploaded_at).toLocaleDateString(isPt ? "pt-BR" : "en-US", {
     day: "2-digit",
@@ -48,19 +46,23 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
       transition={{ duration: 0.25 }}
       className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30"
     >
-      {/* Thumbnail / Preview area */}
+      {/* Video preview iframe */}
       <button
         onClick={() => onPreview(video)}
-        className="relative flex h-36 items-center justify-center bg-muted/50 transition-colors group-hover:bg-muted"
+        className="relative block h-44 w-full bg-muted/50 overflow-hidden"
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-        <Film className="h-10 w-10 text-muted-foreground/40 transition-transform group-hover:scale-110" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg">
-            <Play className="h-4 w-4 ml-0.5" />
+        {previewUrl ? (
+          <iframe
+            src={previewUrl}
+            className="pointer-events-none h-full w-full"
+            allow="autoplay"
+            allowFullScreen
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground/40 text-sm">
+            {isPt ? "Sem preview" : "No preview"}
           </div>
-        </div>
-        {/* NEW badge */}
+        )}
         {video.status === "new" && (
           <Badge className="absolute left-2 top-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 font-semibold shadow-sm">
             NEW
@@ -75,12 +77,6 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
         </h3>
         <div className="mt-auto flex items-center gap-2 pt-2 text-xs text-muted-foreground">
           <span>{dateStr}</span>
-          {fileSize && (
-            <>
-              <span className="text-border">•</span>
-              <span>{fileSize}</span>
-            </>
-          )}
         </div>
 
         {/* Actions */}

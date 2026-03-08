@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, Calendar, HardDrive, Film } from "lucide-react";
+import { Download, ExternalLink, Calendar, Film } from "lucide-react";
+
+function extractFileId(video: any): string | null {
+  if (video.drive_file_id) return video.drive_file_id;
+  const match = video.drive_link?.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 interface VideoPreviewModalProps {
   video: any | null;
@@ -26,21 +32,10 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
 
   if (!video) return null;
 
-  const downloadUrl = video.drive_file_id
-    ? `https://drive.google.com/uc?export=download&id=${video.drive_file_id}`
-    : video.drive_link;
-  const viewUrl = video.drive_file_id
-    ? `https://drive.google.com/file/d/${video.drive_file_id}/view`
-    : video.drive_link;
-  const previewUrl = video.drive_file_id
-    ? `https://drive.google.com/file/d/${video.drive_file_id}/preview`
-    : null;
-
-  const fileSize = video.file_size
-    ? video.file_size < 1024 * 1024
-      ? `${(video.file_size / 1024).toFixed(1)} KB`
-      : `${(video.file_size / (1024 * 1024)).toFixed(1)} MB`
-    : null;
+  const fileId = extractFileId(video);
+  const previewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
+  const downloadUrl = fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : video.drive_link;
+  const viewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/view` : video.drive_link;
 
   const dateStr = new Date(video.uploaded_at).toLocaleDateString(isPt ? "pt-BR" : "en-US", {
     day: "2-digit",
@@ -51,7 +46,6 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
-        {/* Video preview */}
         <div className="relative aspect-video w-full bg-muted">
           {previewUrl ? (
             <iframe
@@ -67,7 +61,6 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
           )}
         </div>
 
-        {/* Info */}
         <div className="p-6 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">{video.title}</h2>
@@ -81,12 +74,6 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
               <Calendar className="h-4 w-4" />
               <span>{dateStr}</span>
             </div>
-            {fileSize && (
-              <div className="flex items-center gap-1.5">
-                <HardDrive className="h-4 w-4" />
-                <span>{fileSize}</span>
-              </div>
-            )}
           </div>
 
           <div className="flex gap-2 pt-2">
@@ -100,10 +87,7 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
               <Download className="mr-2 h-4 w-4" />
               {t.dashboard.download}
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => window.open(viewUrl, "_blank")}
-            >
+            <Button variant="outline" onClick={() => window.open(viewUrl, "_blank")}>
               <ExternalLink className="mr-2 h-4 w-4" />
               {t.dashboard.openDrive}
             </Button>
