@@ -101,14 +101,12 @@ async function getMeta(token: string, fileId: string): Promise<DriveMeta> {
   return data;
 }
 
-/** Validates the root folder is a non-trashed folder inside a Shared Drive. Returns driveId. */
-function validateRoot(meta: DriveMeta): string {
+/** Validates the root folder is a non-trashed folder. Returns driveId or null for My Drive. */
+function validateRoot(meta: DriveMeta): string | null {
   if (meta.trashed) throw new Error(`${CFG_ERR} Root folder is in trash.`);
   if (meta.mimeType !== "application/vnd.google-apps.folder")
     throw new Error(`${CFG_ERR} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder.`);
-  if (!meta.driveId)
-    throw new Error(`${CFG_ERR} Root folder is NOT inside a Shared Drive. Service Accounts require a Shared Drive.`);
-  return meta.driveId;
+  return meta.driveId || null;
 }
 
 /**
