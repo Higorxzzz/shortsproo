@@ -16,6 +16,22 @@ const RawVideosList = () => {
   const queryClient = useQueryClient();
   const isPt = (t as any).language === "pt";
 
+  // Realtime: auto-refresh when admin changes status
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('raw-videos-status')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'raw_videos', filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["raw-videos"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
+
   const { data: rawVideos = [], isLoading } = useQuery({
     queryKey: ["raw-videos", user?.id],
     enabled: !!user,
