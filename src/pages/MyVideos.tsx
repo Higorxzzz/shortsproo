@@ -53,47 +53,7 @@ const MyVideos = () => {
     },
   });
 
-  const { data: todayTasks = [] } = useQuery({
-    queryKey: ["my-tasks-today", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("task_date", today)
-        .order("task_number", { ascending: true });
-      return data || [];
-    },
-  });
-
-  const { data: rawVideos = [] } = useQuery({
-    queryKey: ["my-raw-videos", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("raw_videos")
-        .select("*")
-        .eq("user_id", user!.id)
-        .in("status", ["waiting", "editing", "ready"])
-        .order("created_at", { ascending: false });
-      return data || [];
-    },
-  });
-
-  const markDownloaded = useMutation({
-    mutationFn: async (videoId: string) => {
-      await supabase.from("videos").update({ status: "downloaded" }).eq("id", videoId);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["videos"] }),
-  });
-
   const plan = (profile as any)?.plans;
-  const todayCompleted = todayTasks.filter((tk: any) => tk.status === "completed").length;
-  const todayTotal = todayTasks.length;
-  const todayProgress = todayTotal > 0 ? Math.round((todayCompleted / todayTotal) * 100) : 0;
-
   const newVideosCount = videos.filter((v: any) => v.status === "new").length;
 
   const filteredVideos = useMemo(() => {
