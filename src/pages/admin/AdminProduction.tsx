@@ -137,16 +137,20 @@ const AdminProduction = () => {
   });
 
   const deliverMutation = useMutation({
-    mutationFn: async ({ rawVideo, link }: { rawVideo: RawVideo; link: string }) => {
-      const fileId = extractDriveFileId(link);
-      const { error: vErr } = await supabase.from("videos").insert({
-        user_id: rawVideo.user_id,
-        title: rawVideo.title,
-        drive_link: link,
-        drive_file_id: fileId,
-        status: "new",
-      });
-      if (vErr) throw vErr;
+    mutationFn: async ({ rawVideo, links }: { rawVideo: RawVideo; links: string[] }) => {
+      const validLinks = links.filter((l) => extractDriveFileId(l.trim()));
+      for (let i = 0; i < validLinks.length; i++) {
+        const link = validLinks[i].trim();
+        const fileId = extractDriveFileId(link);
+        const { error: vErr } = await supabase.from("videos").insert({
+          user_id: rawVideo.user_id,
+          title: `${rawVideo.title} - Short ${i + 1}`,
+          drive_link: link,
+          drive_file_id: fileId,
+          status: "new",
+        });
+        if (vErr) throw vErr;
+      }
       const { error: rErr } = await supabase
         .from("raw_videos")
         .update({ status: "completed" })
@@ -156,9 +160,9 @@ const AdminProduction = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["production-raw-videos"] });
       queryClient.invalidateQueries({ queryKey: ["videos"] });
-      toast({ title: isPt ? "Vídeo entregue!" : "Video delivered!" });
+      toast({ title: isPt ? "Vídeos entregues!" : "Videos delivered!" });
       setDeliverVideo(null);
-      setDriveLink("");
+      setDriveLinks([]);
     },
     onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
