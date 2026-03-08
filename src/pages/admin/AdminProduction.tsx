@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Upload, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, Film, Filter, Link2, Loader2, MessageSquare, RefreshCw, AlertCircle } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
-import VideoUploadDialog from "@/components/VideoUploadDialog";
+import AddVideoLinkDialog from "@/components/AddVideoLinkDialog";
 
 type TaskWithUser = {
   id: string;
@@ -294,8 +294,8 @@ const AdminProduction = () => {
                               </Button>
                               {task.status !== "completed" && (
                                 <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setUploadTask(task)}>
-                                  <Upload className="mr-1 h-3 w-3" />
-                                  {isPt ? "Enviar" : "Upload"}
+                                  <Link2 className="mr-1 h-3 w-3" />
+                                  {isPt ? "Link" : "Link"}
                                 </Button>
                               )}
                             </div>
@@ -312,9 +312,9 @@ const AdminProduction = () => {
         </div>
       )}
 
-      {/* Upload Dialog */}
+      {/* Add Video Link Dialog */}
       {uploadTask && (
-        <VideoUploadDialog
+        <AddVideoLinkDialog
           open={!!uploadTask}
           onOpenChange={(open) => !open && setUploadTask(null)}
           clientUserId={uploadTask.user_id}
