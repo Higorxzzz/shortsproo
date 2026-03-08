@@ -389,6 +389,33 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_quota_log: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          request_type: string
+          units_used: number
+          user_id: string | null
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          request_type?: string
+          units_used?: number
+          user_id?: string | null
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          request_type?: string
+          units_used?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       youtube_videos_cache: {
         Row: {
           channel_id: string

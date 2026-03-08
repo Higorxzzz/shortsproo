@@ -305,6 +305,11 @@ const MyVideos = () => {
         </TabsContent>
       </Tabs>
 
+      {/* YouTube Shorts Carousel */}
+      <div className="mt-8">
+        <YouTubeShortsCarousel channelId={(profile as any)?.youtube_channel} />
+      </div>
+
       <VideoPreviewModal
         video={previewVideo}
         open={!!previewVideo}
