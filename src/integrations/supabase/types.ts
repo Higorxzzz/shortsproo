@@ -269,6 +269,8 @@ export type Database = {
           chat_id: string
           content: string
           created_at: string
+          file_type: string | null
+          file_url: string | null
           id: string
           sender_id: string
         }
@@ -276,6 +278,8 @@ export type Database = {
           chat_id: string
           content: string
           created_at?: string
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           sender_id: string
         }
@@ -283,6 +287,8 @@ export type Database = {
           chat_id?: string
           content?: string
           created_at?: string
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           sender_id?: string
         }
