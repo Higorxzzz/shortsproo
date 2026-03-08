@@ -39,6 +39,7 @@ const AdminLayout = () => {
     plans: t.admin.plans,
     videos: t.admin.videos,
     rawVideos: t.language === "pt" ? "Vídeos Brutos" : "Raw Videos",
+    chats: t.language === "pt" ? "Chats" : "Chats",
     settings: t.admin.settings,
   };
 

@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { SupportChat } from "@/components/SupportChat";
 
 const DashboardLayout = () => {
   return (
@@ -16,6 +17,7 @@ const DashboardLayout = () => {
           </main>
         </div>
       </div>
+      <SupportChat />
     </SidebarProvider>
   );
 };
