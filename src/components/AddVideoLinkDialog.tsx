@@ -126,7 +126,7 @@ const AddVideoLinkDialog = ({
           </Button>
           <Button
             onClick={() => addVideo.mutate()}
-            disabled={!videoTitle.trim() || !driveLink.trim() || !fileId || addVideo.isPending}
+            disabled={!driveLink.trim() || !fileId || addVideo.isPending}
           >
             {addVideo.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
             {isPt ? "Adicionar" : "Add"}
