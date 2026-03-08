@@ -81,7 +81,6 @@ const AddVideoLinkDialog = ({
   });
 
   const resetAndClose = () => {
-    setVideoTitle("");
     setDriveLink("");
     onOpenChange(false);
   };
