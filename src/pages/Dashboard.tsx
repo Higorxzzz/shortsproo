@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import RawVideoUpload from "@/components/dashboard/RawVideoUpload";
 import RawVideosList from "@/components/dashboard/RawVideosList";
+import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 
 const Dashboard = () => {
   const { t } = useLanguage();
