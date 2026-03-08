@@ -354,7 +354,7 @@ const AdminProduction = () => {
                       )}
                     </AnimatePresence>
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             );
           })}
