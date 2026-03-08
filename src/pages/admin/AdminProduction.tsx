@@ -312,9 +312,9 @@ const AdminProduction = () => {
         </div>
       )}
 
-      {/* Upload Dialog */}
+      {/* Add Video Link Dialog */}
       {uploadTask && (
-        <VideoUploadDialog
+        <AddVideoLinkDialog
           open={!!uploadTask}
           onOpenChange={(open) => !open && setUploadTask(null)}
           clientUserId={uploadTask.user_id}
