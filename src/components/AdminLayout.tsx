@@ -44,58 +44,48 @@ const AdminLayout = () => {
   const visibleLinks = adminLinks.filter((link) => teamRole && link.requiredRoles.includes(teamRole));
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* Sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block">
-        <div className="flex flex-col gap-1 p-4">
-          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin</p>
-          {visibleLinks.map((link) => {
-            const isActive = location.pathname === link.to;
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                <link.icon className="h-4 w-4" />
-                {labels[link.labelKey]}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
-
+    <div className="container max-w-7xl py-6 px-4 md:px-8">
       {/* Mobile nav */}
-      <div className="flex w-full flex-col">
-        <div className="flex gap-1 overflow-x-auto border-b border-border bg-card p-2 md:hidden">
-          {visibleLinks.map((link) => {
-            const isActive = location.pathname === link.to;
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-                  isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
-                )}
-              >
-                <link.icon className="h-3.5 w-3.5" />
-                {labels[link.labelKey]}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 p-6 md:p-8">
-          <Outlet />
-        </div>
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-2 mb-6 md:hidden">
+        {visibleLinks.map((link) => {
+          const isActive = location.pathname === link.to;
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+                isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
+              )}
+            >
+              <link.icon className="h-3.5 w-3.5" />
+              {labels[link.labelKey]}
+            </Link>
+          );
+        })}
       </div>
+
+      {/* Desktop tabs */}
+      <div className="hidden md:flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1.5 mb-6">
+        {visibleLinks.map((link) => {
+          const isActive = location.pathname === link.to;
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              <link.icon className="h-4 w-4" />
+              {labels[link.labelKey]}
+            </Link>
+          );
+        })}
+      </div>
+
+      <Outlet />
     </div>
   );
 };
