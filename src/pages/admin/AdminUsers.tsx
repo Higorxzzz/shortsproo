@@ -113,9 +113,10 @@ const AdminUsers = () => {
                 <TableHead>
                   <div className="flex items-center gap-1">
                     <Youtube className="h-3.5 w-3.5" />
-                    Channel ID
+                    {isPt ? "Canal" : "Channel"}
                   </div>
                 </TableHead>
+                <TableHead>Channel ID (API)</TableHead>
                 <TableHead>{t.admin.userPlan}</TableHead>
                 <TableHead>{t.admin.userStatus}</TableHead>
                 <TableHead>{t.admin.actions}</TableHead>
@@ -127,7 +128,22 @@ const AdminUsers = () => {
                   <TableCell className="font-medium">{user.name || "-"}</TableCell>
                   <TableCell>{user.email || "-"}</TableCell>
                   <TableCell>
-                    <ChannelIdCell user={user} onSave={handleChannelSave} />
+                    {user.youtube_channel ? (
+                      <a
+                        href={user.youtube_channel.startsWith("http") ? user.youtube_channel : `https://youtube.com/${user.youtube_channel}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="max-w-[140px] truncate text-xs text-primary hover:underline block"
+                        title={user.youtube_channel}
+                      >
+                        {user.youtube_channel}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <ChannelIdCell user={user} onSave={handleChannelIdSave} />
                   </TableCell>
                   <TableCell>
                     <select
