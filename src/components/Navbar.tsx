@@ -32,9 +32,14 @@ export const Navbar = () => {
             {t.nav.plans}
           </Link>
           {user && (
-            <Link to="/dashboard" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-              {t.nav.dashboard}
-            </Link>
+            <>
+              <Link to="/dashboard" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                {t.nav.dashboard}
+              </Link>
+              <Link to="/my-videos" className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                {(t as any).language === "pt" ? "Meus Vídeos" : "My Videos"}
+              </Link>
+            </>
           )}
           {isTeamMember && (
             <Link to={isAdmin ? "/admin" : "/admin/production"} className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
