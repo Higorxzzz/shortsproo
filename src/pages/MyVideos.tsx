@@ -130,8 +130,8 @@ const MyVideos = () => {
           <CardContent>
             {todayDeliveredCount > 0 ? (
               <>
-                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{isPt ? "Progresso" : "Progress"}</span>
+              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{isPt ? "Entregues" : "Delivered"}: {todayDeliveredCount}/{shortsPerDay}</span>
                   <span>{todayDeliveryProgress}%</span>
                 </div>
                 <Progress value={todayDeliveryProgress} className="mb-5 h-2" />
