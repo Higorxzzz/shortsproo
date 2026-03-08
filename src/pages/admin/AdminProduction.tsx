@@ -21,6 +21,7 @@ type TaskWithUser = {
   status: string;
   video_id: string | null;
   completed_at: string | null;
+  completed_by: string | null;
   notes: string | null;
   user_name: string | null;
   user_email: string | null;
@@ -30,6 +31,8 @@ type TaskWithUser = {
   youtube_channel: string | null;
   country: string | null;
   language: string | null;
+  video_title: string | null;
+  video_drive_link: string | null;
 };
 
 const PRIORITY_ORDER: Record<string, number> = { Pro: 1, Growth: 2, Creator: 3, Starter: 4 };
