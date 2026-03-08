@@ -72,12 +72,24 @@ const AdminProduction = () => {
         .in("id", userIds);
       const { data: plans } = await supabase.from("plans").select("id, name, shorts_per_day, price");
 
+      // Fetch linked videos
+      const videoIds = taskRows.map((t) => t.video_id).filter(Boolean) as string[];
+      const videoMap = new Map<string, { title: string; drive_link: string }>();
+      if (videoIds.length > 0) {
+        const { data: videos } = await supabase
+          .from("videos")
+          .select("id, title, drive_link")
+          .in("id", videoIds);
+        (videos || []).forEach((v) => videoMap.set(v.id, { title: v.title, drive_link: v.drive_link }));
+      }
+
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       const planMap = new Map((plans || []).map((p) => [p.id, p]));
 
       return taskRows.map((task) => {
         const profile = profileMap.get(task.user_id);
         const plan = profile?.plan_id ? planMap.get(profile.plan_id) : null;
+        const video = task.video_id ? videoMap.get(task.video_id) : null;
         return {
           ...task,
           user_name: profile?.name || null,
@@ -88,6 +100,8 @@ const AdminProduction = () => {
           youtube_channel: profile?.youtube_channel || null,
           country: profile?.country || null,
           language: profile?.language || null,
+          video_title: video?.title || null,
+          video_drive_link: video?.drive_link || null,
         } as TaskWithUser;
       });
     },
