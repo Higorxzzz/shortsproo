@@ -499,9 +499,14 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error("Google Drive function error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const isConfigError = msg.startsWith(DRIVE_CONFIG_ERROR_PREFIX);
+
+    return new Response(
+      JSON.stringify({ error: isConfigError ? msg.replace(DRIVE_CONFIG_ERROR_PREFIX, "").trim() : msg }),
+      {
+        status: isConfigError ? 400 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
