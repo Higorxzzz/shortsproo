@@ -7,12 +7,17 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import AdminLayout from "@/components/AdminLayout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Plans from "./pages/Plans";
 import Dashboard from "./pages/Dashboard";
-import Admin from "./pages/Admin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminVideos from "./pages/admin/AdminVideos";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +39,13 @@ const App = () => (
                   <Route path="/register" element={<Register />} />
                   <Route path="/plans" element={<Plans />} />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="plans" element={<AdminPlans />} />
+                    <Route path="videos" element={<AdminVideos />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                  </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
