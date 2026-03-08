@@ -142,8 +142,8 @@ const Plans = () => {
                 <CardHeader className="text-center">
                   <CardTitle className="font-heading text-xl">{plan.name}</CardTitle>
                   <div className="mt-2">
-                    <span className="text-3xl font-bold">R${plan.price}</span>
-                    <span className="text-muted-foreground">/mês</span>
+                    <span className="text-3xl font-bold">${plan.price}</span>
+                    <span className="text-muted-foreground">/{isPt ? "mês" : "mo"}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
