@@ -23,7 +23,7 @@ const RawVideoUpload = () => {
   const isPt = (t as any).language === "pt";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [title, setTitle] = useState("");
+  
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -63,7 +63,7 @@ const RawVideoUpload = () => {
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
   const handleUpload = async () => {
-    if (!user || !file || !title.trim()) return;
+    if (!user || !file) return;
 
     setUploading(true);
     setProgress(5);
@@ -88,7 +88,7 @@ const RawVideoUpload = () => {
 
       const { error: dbError } = await supabase.from("raw_videos").insert({
         user_id: user.id,
-        title: title.trim(),
+        title: file.name.replace(/\.[^/.]+$/, ""),
         notes: notes.trim() || null,
         file_path: filePath,
         file_name: file.name,
@@ -103,7 +103,6 @@ const RawVideoUpload = () => {
       toast.success(isPt ? "Vídeo enviado com sucesso!" : "Video uploaded successfully!");
 
       setTimeout(() => {
-        setTitle("");
         setNotes("");
         setFile(null);
         setUploadSuccess(false);
@@ -141,18 +140,6 @@ const RawVideoUpload = () => {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Title input */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium">{isPt ? "Título do vídeo" : "Video title"}</Label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={isPt ? "Ex: Vlog semana 12" : "Ex: Week 12 vlog"}
-            disabled={uploading}
-            className="h-9"
-          />
-        </div>
-
         {/* File drop zone */}
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">{isPt ? "Arquivo de vídeo" : "Video file"}</Label>
@@ -262,7 +249,7 @@ const RawVideoUpload = () => {
         {/* Submit button */}
         <Button
           onClick={handleUpload}
-          disabled={uploading || !title.trim() || !file || uploadSuccess}
+          disabled={uploading || !file || uploadSuccess}
           className="w-full gap-2 h-11 text-sm font-semibold"
           size="lg"
         >
