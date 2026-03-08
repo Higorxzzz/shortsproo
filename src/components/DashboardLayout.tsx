@@ -11,7 +11,7 @@ const DashboardLayout = () => {
           <header className="sticky top-0 z-40 flex h-12 items-center border-b border-border/50 bg-background/80 backdrop-blur-xl px-4">
             <SidebarTrigger className="h-8 w-8" />
           </header>
-          <main className="flex-1">
+          <main className="flex-1 p-4 md:p-6">
             <Outlet />
           </main>
         </div>
