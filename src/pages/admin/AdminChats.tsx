@@ -5,9 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, MessageCircle, User, Paperclip, FileText } from "lucide-react";
+import { Send, MessageCircle, User, Paperclip, FileText, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Navigate } from "react-router-dom";
@@ -169,6 +170,15 @@ const AdminChats = () => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
+  const clearChat = async () => {
+    if (!selectedChatId) return;
+    await supabase.from("support_messages").delete().eq("chat_id", selectedChatId);
+    await supabase.from("support_chats").delete().eq("id", selectedChatId);
+    setMessages([]);
+    setSelectedChatId(null);
+    setChats((prev) => prev.filter((c) => c.id !== selectedChatId));
+  };
+
   const selectedChat = chats.find((c) => c.id === selectedChatId);
 
   if (authLoading) return <div className="flex h-[60vh] items-center justify-center">Loading...</div>;
@@ -232,6 +242,27 @@ const AdminChats = () => {
                   <p className="text-sm font-semibold">{selectedChat?.user_name}</p>
                   <p className="text-xs text-muted-foreground">{selectedChat?.user_email}</p>
                 </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{isPt ? "Limpar conversa?" : "Clear conversation?"}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {isPt ? "Todas as mensagens serão excluídas permanentemente." : "All messages will be permanently deleted."}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{isPt ? "Cancelar" : "Cancel"}</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        {isPt ? "Excluir" : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
