@@ -81,7 +81,7 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
             <Button
               className="flex-1"
               onClick={() => {
-                window.open(downloadUrl, "_blank");
+                window.location.assign(downloadUrl);
                 if (video.status === "new") markDownloaded.mutate(video.id);
               }}
             >
