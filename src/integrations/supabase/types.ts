@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      production_logs: {
+        Row: {
+          action: string
+          created_at: string
+          editor_id: string | null
+          id: string
+          notes: string | null
+          task_id: string
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          editor_id?: string | null
+          id?: string
+          notes?: string | null
+          task_id: string
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          editor_id?: string | null
+          id?: string
+          notes?: string | null
+          task_id?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_logs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           country: string | null
@@ -84,6 +132,53 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          task_date: string
+          task_number: number
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          task_date?: string
+          task_number: number
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          task_date?: string
+          task_number?: number
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
             referencedColumns: ["id"]
           },
         ]
@@ -138,6 +233,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_daily_tasks: { Args: { target_date?: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
