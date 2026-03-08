@@ -137,11 +137,11 @@ async function createFolder(token: string, name: string, parentId: string): Prom
   return data.id;
 }
 
-async function findFolder(token: string, name: string, parentId: string, driveId: string): Promise<string | null> {
+async function findFolder(token: string, name: string, parentId: string, driveId: string | null): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const driveParams = driveId
     ? `&supportsAllDrives=true&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`
-    : `&supportsAllDrives=true`;
+    : ``;
   const resp = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)${driveParams}`,
     { headers: { Authorization: `Bearer ${token}` } }
