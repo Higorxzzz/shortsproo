@@ -12,7 +12,7 @@ import { Youtube, Check, X, Pencil } from "lucide-react";
 
 const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: string) => void }) => {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(user.youtube_channel || "");
+  const [value, setValue] = useState(user.youtube_channel_id || "");
 
   const handleSave = () => {
     onSave(user.id, value.trim());
@@ -20,7 +20,7 @@ const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: 
   };
 
   const handleCancel = () => {
-    setValue(user.youtube_channel || "");
+    setValue(user.youtube_channel_id || "");
     setEditing(false);
   };
 
@@ -50,9 +50,9 @@ const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: 
 
   return (
     <div className="flex items-center gap-1.5">
-      {user.youtube_channel ? (
-        <span className="max-w-[120px] truncate text-xs font-mono" title={user.youtube_channel}>
-          {user.youtube_channel}
+      {user.youtube_channel_id ? (
+        <span className="max-w-[120px] truncate text-xs font-mono" title={user.youtube_channel_id}>
+          {user.youtube_channel_id}
         </span>
       ) : (
         <span className="text-xs text-muted-foreground">—</span>
@@ -96,8 +96,8 @@ const AdminUsers = () => {
     },
   });
 
-  const handleChannelSave = (userId: string, channelId: string) => {
-    updateUser.mutate({ userId, updates: { youtube_channel: channelId || null } });
+  const handleChannelIdSave = (userId: string, channelId: string) => {
+    updateUser.mutate({ userId, updates: { youtube_channel_id: channelId || null } });
   };
 
   return (
