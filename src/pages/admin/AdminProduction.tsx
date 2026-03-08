@@ -34,6 +34,8 @@ import {
   Send,
   Sparkles,
   AlertCircle,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
 import AddVideoLinkDialog from "@/components/AddVideoLinkDialog";
