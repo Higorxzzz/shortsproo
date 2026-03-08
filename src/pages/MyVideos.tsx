@@ -95,8 +95,8 @@ const MyVideos = () => {
   const todayStr = new Date().toDateString();
   const todayVideos = videos.filter((v: any) => new Date(v.uploaded_at).toDateString() === todayStr);
   const todayDeliveredCount = todayVideos.length;
-  const todayDownloadedCount = todayVideos.filter((v: any) => v.status === "downloaded").length;
-  const todayDeliveryProgress = todayDeliveredCount > 0 ? Math.round((todayDownloadedCount / todayDeliveredCount) * 100) : 0;
+  const shortsPerDay = plan?.shorts_per_day || todayDeliveredCount || 1;
+  const todayDeliveryProgress = todayDeliveredCount > 0 ? Math.min(100, Math.round((todayDeliveredCount / shortsPerDay) * 100)) : 0;
 
   if (!user) return null;
 
@@ -121,8 +121,8 @@ const MyVideos = () => {
                 <CardTitle className="text-lg">{isPt ? "Entregas de Hoje" : "Today's Deliveries"}</CardTitle>
               </div>
               {todayDeliveredCount > 0 && (
-                <Badge variant={todayDownloadedCount === todayDeliveredCount ? "default" : "secondary"} className="text-xs">
-                  {todayDownloadedCount}/{todayDeliveredCount} {isPt ? "baixados" : "downloaded"}
+                <Badge variant={todayDeliveredCount >= shortsPerDay ? "default" : "secondary"} className="text-xs">
+                  {todayDeliveredCount}/{shortsPerDay} {isPt ? "entregues" : "delivered"}
                 </Badge>
               )}
             </div>
@@ -130,8 +130,8 @@ const MyVideos = () => {
           <CardContent>
             {todayDeliveredCount > 0 ? (
               <>
-                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{isPt ? "Progresso" : "Progress"}</span>
+              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{isPt ? "Entregues" : "Delivered"}: {todayDeliveredCount}/{shortsPerDay}</span>
                   <span>{todayDeliveryProgress}%</span>
                 </div>
                 <Progress value={todayDeliveryProgress} className="mb-5 h-2" />

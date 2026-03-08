@@ -49,7 +49,7 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
       {/* Video preview iframe */}
       <button
         onClick={() => onPreview(video)}
-        className="relative block h-44 w-full bg-muted/50 overflow-hidden"
+        className="relative block aspect-[9/16] w-full bg-muted/50 overflow-hidden"
       >
         {fileId ? (
           <img
