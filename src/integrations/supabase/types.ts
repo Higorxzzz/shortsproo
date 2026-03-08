@@ -302,6 +302,33 @@ export type Database = {
           },
         ]
       }
+      support_quick_replies: {
+        Row: {
+          active: boolean
+          auto_response: string
+          created_at: string
+          id: string
+          question: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          auto_response: string
+          created_at?: string
+          id?: string
+          question: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          auto_response?: string
+          created_at?: string
+          id?: string
+          question?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null
