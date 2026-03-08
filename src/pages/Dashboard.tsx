@@ -199,7 +199,10 @@ const Dashboard = () => {
                               variant="outline"
                               className="h-8 text-xs"
                               onClick={() => {
-                                window.open(video.drive_link, "_blank");
+                                const dlUrl = video.drive_file_id
+                                  ? `https://drive.google.com/uc?export=download&id=${video.drive_file_id}`
+                                  : video.drive_link;
+                                window.open(dlUrl, "_blank");
                                 if (video.status === "new") markDownloaded.mutate(video.id);
                               }}
                             >
