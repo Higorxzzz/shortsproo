@@ -230,7 +230,7 @@ async function resolveClientFolder(
   token: string,
   clientUserId: string,
   rootFolderId: string,
-  sharedDriveId: string
+  sharedDriveId: string | null
 ): Promise<string> {
   // Query filtering by parent_folder_id to avoid picking up old folders from personal drive
   const { data: existingFolder } = await supabase
