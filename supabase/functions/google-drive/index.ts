@@ -303,6 +303,10 @@ Deno.serve(async (req) => {
     const sa: ServiceAccountKey = JSON.parse(saJson);
     const accessToken = await getAccessToken(sa);
 
+    const rootMetadata = await getFolderMetadata(accessToken, rootFolderId);
+    validateRootFolder(rootMetadata);
+    const sharedDriveId = rootMetadata.driveId as string;
+
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
