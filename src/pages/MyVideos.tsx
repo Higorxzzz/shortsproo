@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Download, Film, CheckCircle2, Clock, Calendar,
   Search, LayoutGrid, CalendarDays, ArrowUpDown,
+  Upload, Scissors, Package, Send,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useMemo } from "react";
@@ -63,6 +64,20 @@ const MyVideos = () => {
         .eq("user_id", user!.id)
         .eq("task_date", today)
         .order("task_number", { ascending: true });
+      return data || [];
+    },
+  });
+
+  const { data: rawVideos = [] } = useQuery({
+    queryKey: ["my-raw-videos", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("raw_videos")
+        .select("*")
+        .eq("user_id", user!.id)
+        .in("status", ["waiting", "editing", "ready"])
+        .order("created_at", { ascending: false });
       return data || [];
     },
   });
@@ -202,6 +217,40 @@ const MyVideos = () => {
                   })}
                 </div>
               </>
+            ) : rawVideos.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground mb-3">
+                  {isPt ? "Seus vídeos estão sendo processados pela equipe:" : "Your videos are being processed by the team:"}
+                </p>
+                {rawVideos.map((rv: any) => {
+                  const statusConfig: Record<string, { icon: typeof Upload; label: string; labelEn: string; color: string }> = {
+                    waiting: { icon: Upload, label: "Enviado", labelEn: "Uploaded", color: "text-muted-foreground" },
+                    editing: { icon: Scissors, label: "Em edição", labelEn: "Editing", color: "text-orange-500" },
+                    ready: { icon: Package, label: "Pronto", labelEn: "Ready", color: "text-primary" },
+                  };
+                  const cfg = statusConfig[rv.status] || statusConfig.waiting;
+                  const Icon = cfg.icon;
+                  return (
+                    <div
+                      key={rv.id}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                    >
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted`}>
+                        <Icon className={`h-4 w-4 ${cfg.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{rv.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(rv.created_at).toLocaleDateString(isPt ? "pt-BR" : "en-US")}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className={`text-xs ${cfg.color}`}>
+                        {isPt ? cfg.label : cfg.labelEn}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
             ) : !plan ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <Film className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -210,10 +259,11 @@ const MyVideos = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center py-8 text-center">
-                <Clock className="mb-3 h-10 w-10 text-muted-foreground" />
+                <CheckCircle2 className="mb-3 h-10 w-10 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  {isPt ? "Nenhuma tarefa gerada hoje. Sua equipe está preparando seus shorts!" : "No tasks generated today. Your team is preparing your shorts!"}
+                  {isPt ? "Nenhum vídeo pendente. Envie vídeos brutos para iniciar!" : "No pending videos. Upload raw videos to get started!"}
                 </p>
+                <Button asChild className="mt-3"><Link to="/dashboard">{isPt ? "Enviar vídeo" : "Upload video"}</Link></Button>
               </div>
             )}
           </CardContent>
