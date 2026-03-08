@@ -23,13 +23,28 @@ const RawVideoUpload = () => {
   const isPt = (t as any).language === "pt";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+
+  // Check if user has a plan
+  const { data: profile } = useQuery({
+    queryKey: ["profile-plan", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan_id")
+        .eq("id", user!.id)
+        .single();
+      return data;
+    },
+  });
+
+  const hasPlan = !!profile?.plan_id;
 
   const validateFile = (f: File): boolean => {
     if (!ACCEPTED_TYPES.includes(f.type)) {
