@@ -37,7 +37,6 @@ const AddVideoLinkDialog = ({
   const isPt = t.language === "pt";
   const queryClient = useQueryClient();
 
-  const [videoTitle, setVideoTitle] = useState("");
   const [driveLink, setDriveLink] = useState("");
 
   const addVideo = useMutation({
