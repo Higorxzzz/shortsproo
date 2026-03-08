@@ -1,7 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload } from "lucide-react";
+import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AdminLink = {
