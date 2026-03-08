@@ -6,7 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const CACHE_TTL_MINUTES = 360; // 6 hours
+const CACHE_TTL_MINUTES = 360;
+const DAILY_QUOTA_LIMIT = 10000; // YouTube default
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -60,14 +61,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 1: Get uploads playlist ID
+    let quotaUsed = 0;
+
+    // Step 1: Get uploads playlist ID (1 quota unit)
     const channelRes = await fetch(
       `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${youtubeApiKey}`
     );
     const channelData = await channelRes.json();
+    quotaUsed += 1;
 
     if (!channelRes.ok || !channelData.items?.length) {
-      // Try returning stale cache
+      // Log quota even on failure
+      await supabase.from("youtube_quota_log").insert({
+        channel_id: channelId,
+        units_used: quotaUsed,
+        request_type: "refresh_failed",
+      });
+
       const { data: staleCache } = await supabase
         .from("youtube_videos_cache")
         .select("*")
@@ -89,7 +99,7 @@ Deno.serve(async (req) => {
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
-    // Step 2: Fetch playlist items (up to 3 pages = 150 videos)
+    // Step 2: Fetch playlist items (1 quota unit per page, up to 3 pages)
     let allVideos: any[] = [];
     let nextPageToken: string | undefined;
     let pages = 0;
@@ -104,10 +114,17 @@ Deno.serve(async (req) => {
 
       const res = await fetch(url.toString());
       const data = await res.json();
+      quotaUsed += 1;
 
       if (!res.ok) {
-        // Quota exceeded — return stale cache
         if (res.status === 403) {
+          // Log quota on 403
+          await supabase.from("youtube_quota_log").insert({
+            channel_id: channelId,
+            units_used: quotaUsed,
+            request_type: "refresh_quota_exceeded",
+          });
+
           const { data: staleCache } = await supabase
             .from("youtube_videos_cache")
             .select("*")
@@ -157,19 +174,11 @@ Deno.serve(async (req) => {
         new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime()
     );
 
-    // Update cache in background
-    // Delete old cache for this channel
-    await supabase
-      .from("youtube_videos_cache")
-      .delete()
-      .eq("channel_id", channelId);
-
-    // Insert new cache
+    // Update cache
+    await supabase.from("youtube_videos_cache").delete().eq("channel_id", channelId);
     if (allVideos.length > 0) {
       await supabase.from("youtube_videos_cache").insert(allVideos);
     }
-
-    // Upsert metadata
     await supabase.from("youtube_cache_metadata").upsert(
       {
         channel_id: channelId,
@@ -178,6 +187,13 @@ Deno.serve(async (req) => {
       },
       { onConflict: "channel_id" }
     );
+
+    // Log quota usage
+    await supabase.from("youtube_quota_log").insert({
+      channel_id: channelId,
+      units_used: quotaUsed,
+      request_type: "refresh",
+    });
 
     return new Response(
       JSON.stringify({ videos: allVideos, fromCache: false, stale: false }),
