@@ -29,7 +29,6 @@ async function createJWT(sa: ServiceAccountKey): Promise<string> {
 
   const unsignedToken = `${encode(header)}.${encode(claims)}`;
 
-  // Import PEM key
   const pemBody = sa.private_key
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
@@ -70,24 +69,27 @@ async function getAccessToken(sa: ServiceAccountKey): Promise<string> {
   return data.access_token;
 }
 
-// Google Drive API helpers
+// Google Drive API helpers - all with supportsAllDrives for shared drive support
 async function createFolder(
   accessToken: string,
   name: string,
   parentId: string
 ): Promise<string> {
-  const resp = await fetch("https://www.googleapis.com/drive/v3/files", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [parentId],
-    }),
-  });
+  const resp = await fetch(
+    "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentId],
+      }),
+    }
+  );
   const data = await resp.json();
   if (!resp.ok) throw new Error(`Create folder error: ${JSON.stringify(data)}`);
   return data.id;
@@ -100,7 +102,7 @@ async function findFolder(
 ): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`,
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const data = await resp.json();
@@ -109,52 +111,19 @@ async function findFolder(
 }
 
 async function setPublicPermission(accessToken: string, fileId: string) {
-  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ role: "reader", type: "anyone" }),
-  });
-}
-
-async function uploadFile(
-  accessToken: string,
-  fileBytes: Uint8Array,
-  fileName: string,
-  parentId: string,
-  mimeType: string
-): Promise<{ id: string; size: string }> {
-  const metadata = JSON.stringify({ name: fileName, parents: [parentId] });
-  const boundary = "-------314159265358979323846";
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelimiter = `\r\n--${boundary}--`;
-
-  const metaPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${metadata}`;
-  const filePart = `${delimiter}Content-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n`;
-
-  const base64File = btoa(String.fromCharCode(...fileBytes));
-
-  const body = `${metaPart}${filePart}${base64File}${closeDelimiter}`;
-
-  const resp = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,size",
+  await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?supportsAllDrives=true`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary.replace(/^-+/, "")}`,
+        "Content-Type": "application/json",
       },
-      body,
+      body: JSON.stringify({ role: "reader", type: "anyone" }),
     }
   );
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(`Upload error: ${JSON.stringify(data)}`);
-  return { id: data.id, size: data.size || "0" };
 }
 
-// Resumable upload for large files
 async function uploadFileResumable(
   accessToken: string,
   fileBytes: Uint8Array,
@@ -162,9 +131,8 @@ async function uploadFileResumable(
   parentId: string,
   mimeType: string
 ): Promise<{ id: string; size: string }> {
-  // 1. Initiate resumable upload
   const initResp = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,size",
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,size&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
@@ -185,7 +153,6 @@ async function uploadFileResumable(
   const uploadUri = initResp.headers.get("Location");
   if (!uploadUri) throw new Error("No upload URI returned");
 
-  // 2. Upload the file in one chunk (edge function memory permitting)
   const uploadResp = await fetch(uploadUri, {
     method: "PUT",
     headers: {
@@ -198,6 +165,40 @@ async function uploadFileResumable(
   const data = await uploadResp.json();
   if (!uploadResp.ok) throw new Error(`Resumable upload error: ${JSON.stringify(data)}`);
   return { id: data.id, size: data.size || String(fileBytes.length) };
+}
+
+async function uploadFileMultipart(
+  accessToken: string,
+  fileBytes: Uint8Array,
+  fileName: string,
+  parentId: string,
+  mimeType: string
+): Promise<{ id: string; size: string }> {
+  const metadata = JSON.stringify({ name: fileName, parents: [parentId] });
+  const boundary = "-------314159265358979323846";
+  const delimiter = `\r\n--${boundary}\r\n`;
+  const closeDelimiter = `\r\n--${boundary}--`;
+
+  const metaPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${metadata}`;
+  const filePart = `${delimiter}Content-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n`;
+
+  const base64File = btoa(String.fromCharCode(...fileBytes));
+  const body = `${metaPart}${filePart}${base64File}${closeDelimiter}`;
+
+  const resp = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,size&supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary.replace(/^-+/, "")}`,
+      },
+      body,
+    }
+  );
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(`Upload error: ${JSON.stringify(data)}`);
+  return { id: data.id, size: data.size || "0" };
 }
 
 Deno.serve(async (req) => {
@@ -215,7 +216,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -228,18 +228,16 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
-    // Check team membership
     const { data: isTeam } = await supabase.rpc("is_team_member", { _user_id: userId });
     if (!isTeam) {
       return new Response(JSON.stringify({ error: "Forbidden: team members only" }), {
@@ -258,7 +256,6 @@ Deno.serve(async (req) => {
     if (action === "create-client-folder") {
       const { client_user_id, folder_name } = await req.json();
 
-      // Check if folder already exists in DB
       const { data: existing } = await supabase
         .from("drive_folders")
         .select("drive_folder_id")
@@ -302,7 +299,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Log start
       const { data: logEntry } = await supabase
         .from("upload_logs")
         .insert({ user_id: clientUserId, file_name: file.name, status: "uploading" })
@@ -310,7 +306,6 @@ Deno.serve(async (req) => {
         .single();
 
       try {
-        // Get or create client folder
         let clientFolderId: string;
         const { data: clientFolder } = await supabase
           .from("drive_folders")
@@ -322,7 +317,6 @@ Deno.serve(async (req) => {
         if (clientFolder?.drive_folder_id) {
           clientFolderId = clientFolder.drive_folder_id;
         } else {
-          // Get client info for folder name
           const { data: profile } = await supabase
             .from("profiles")
             .select("name, youtube_channel")
@@ -344,7 +338,6 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Get or create month subfolder (YYYY-MM)
         const monthKey = new Date().toISOString().slice(0, 7);
         let monthFolderId = await findFolder(accessToken, monthKey, clientFolderId);
 
@@ -360,25 +353,21 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Upload file
         const fileBytes = new Uint8Array(await file.arrayBuffer());
         const mimeType = file.type || "video/mp4";
 
         let result;
-        // Use resumable for files > 5MB
         if (fileBytes.length > 5 * 1024 * 1024) {
           result = await uploadFileResumable(accessToken, fileBytes, file.name, monthFolderId, mimeType);
         } else {
-          result = await uploadFile(accessToken, fileBytes, file.name, monthFolderId, mimeType);
+          result = await uploadFileMultipart(accessToken, fileBytes, file.name, monthFolderId, mimeType);
         }
 
-        // Set public permission
         await setPublicPermission(accessToken, result.id);
 
         const driveLink = `https://drive.google.com/file/d/${result.id}/view`;
         const downloadLink = `https://drive.google.com/uc?export=download&id=${result.id}`;
 
-        // Save video record
         const { data: video, error: videoError } = await supabase
           .from("videos")
           .insert({
@@ -396,7 +385,6 @@ Deno.serve(async (req) => {
 
         if (videoError) throw videoError;
 
-        // Update task if provided
         if (taskId) {
           await supabase
             .from("tasks")
@@ -408,7 +396,6 @@ Deno.serve(async (req) => {
             })
             .eq("id", taskId);
 
-          // Log production
           await supabase.from("production_logs").insert({
             task_id: taskId,
             user_id: clientUserId,
@@ -418,7 +405,6 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Update log
         if (logEntry?.id) {
           await supabase
             .from("upload_logs")
@@ -437,7 +423,6 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (uploadError: unknown) {
-        // Log failure
         if (logEntry?.id) {
           const errMsg = uploadError instanceof Error ? uploadError.message : "Unknown error";
           await supabase
