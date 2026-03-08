@@ -112,9 +112,6 @@ const MyVideos = () => {
         </p>
       </div>
 
-      {/* YouTube Shorts Carousel */}
-      <YouTubeShortsCarousel channelId={(profile as any)?.youtube_channel} />
-
       {/* Today's delivery indicator */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <Card className="mb-8 overflow-hidden">
