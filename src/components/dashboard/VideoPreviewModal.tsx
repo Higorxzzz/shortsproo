@@ -1,7 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, ExternalLink, Calendar, Film } from "lucide-react";
@@ -45,7 +45,8 @@ const VideoPreviewModal = ({ video, open, onOpenChange }: VideoPreviewModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{video.title}</DialogTitle>
         <div className="relative aspect-video w-full bg-muted">
           {previewUrl ? (
             <iframe
