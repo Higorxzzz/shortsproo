@@ -672,7 +672,7 @@ const AdminProduction = () => {
                                           </Button>
                                         )}
 
-                                        {/* Deliver link button (only when ready or pending/editing) */}
+                                        {/* Deliver link button (only when not completed) */}
                                         {statusKey !== "completed" && (
                                           <Button
                                             size="sm"
@@ -683,6 +683,44 @@ const AdminProduction = () => {
                                             <Link2 className="h-3 w-3" />
                                             {isPt ? "Entregar" : "Deliver"}
                                           </Button>
+                                        )}
+
+                                        {/* Edit delivered video (re-deliver) */}
+                                        {statusKey === "completed" && task.video_id && (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-8 w-8 p-0"
+                                              onClick={() => {
+                                                // Delete current video then open dialog to re-add
+                                                deleteVideoMutation.mutate(
+                                                  { taskId: task.id, videoId: task.video_id! },
+                                                  {
+                                                    onSuccess: () => setUploadTask(task),
+                                                  }
+                                                );
+                                              }}
+                                              title={isPt ? "Editar link" : "Edit link"}
+                                            >
+                                              <Pencil className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                              disabled={deleteVideoMutation.isPending}
+                                              onClick={() =>
+                                                deleteVideoMutation.mutate({
+                                                  taskId: task.id,
+                                                  videoId: task.video_id!,
+                                                })
+                                              }
+                                              title={isPt ? "Remover vídeo" : "Remove video"}
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </>
                                         )}
                                       </div>
                                     </div>
