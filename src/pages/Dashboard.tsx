@@ -102,21 +102,16 @@ const Dashboard = () => {
         transition={{ delay: 0.05 }}
         className="mb-10"
       >
-        <div className="flex items-center gap-3 overflow-x-auto pb-2">
+        <div className="grid gap-4 sm:grid-cols-3 pb-2">
           {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 min-w-[160px]">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <step.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{step.title}</p>
-                  <p className="text-xs text-muted-foreground">{step.desc}</p>
-                </div>
+            <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <step.icon className="h-6 w-6 text-primary" />
               </div>
-              {i < steps.length - 1 && (
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-              )}
+              <div>
+                <p className="text-sm font-bold">{step.title}</p>
+                <p className="text-xs text-muted-foreground">{step.desc}</p>
+              </div>
             </div>
           ))}
         </div>

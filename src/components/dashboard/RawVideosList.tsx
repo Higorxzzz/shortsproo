@@ -64,11 +64,36 @@ const RawVideosList = () => {
               </p>
             </div>
           </div>
-          {rawVideos.length > 0 && (
-            <Badge variant="outline" className="text-xs font-medium">
-              {rawVideos.length}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {rawVideos.length > 0 && (
+              <Badge variant="outline" className="text-xs font-medium">
+                {rawVideos.length}
+              </Badge>
+            )}
+            {rawVideos.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+                onClick={async () => {
+                  const { error } = await supabase
+                    .from("raw_videos")
+                    .delete()
+                    .eq("user_id", user!.id)
+                    .eq("status", "completed");
+                  if (error) {
+                    toast.error(isPt ? "Erro ao limpar histórico" : "Error clearing history");
+                  } else {
+                    toast.success(isPt ? "Histórico limpo!" : "History cleared!");
+                    queryClient.invalidateQueries({ queryKey: ["raw-videos"] });
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {isPt ? "Limpar" : "Clear"}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
