@@ -21,10 +21,10 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <Toaster />
+            <Sonner />
             <div className="flex min-h-screen flex-col">
               <Navbar />
               <main className="flex-1">
