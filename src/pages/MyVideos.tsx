@@ -2,6 +2,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,22 @@ const MyVideos = () => {
       return data;
     },
   });
+
+  // Auto-resolve youtube_channel_id if missing but channel URL exists
+  useEffect(() => {
+    const p = profile as any;
+    if (p?.youtube_channel && !p?.youtube_channel_id) {
+      supabase.functions.invoke("resolve-youtube-channel", {
+        body: { handle: p.youtube_channel },
+      }).then(({ data }) => {
+        if (data?.channelId) {
+          supabase.from("profiles").update({ youtube_channel_id: data.channelId }).eq("id", p.id).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+          });
+        }
+      });
+    }
+  }, [(profile as any)?.youtube_channel, (profile as any)?.youtube_channel_id]);
 
   const { data: videos = [] } = useQuery({
     queryKey: ["videos", user?.id],
