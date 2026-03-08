@@ -217,18 +217,39 @@ const MyVideos = () => {
                   })}
                 </div>
               </>
-            ) : !plan ? (
-              <div className="flex flex-col items-center py-8 text-center">
-                <Film className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="mb-3 text-muted-foreground">{t.dashboard.noPlan}</p>
-                <Button asChild><Link to="/plans">{t.dashboard.selectPlan}</Link></Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-8 text-center">
-                <Clock className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  {isPt ? "Nenhuma tarefa gerada hoje. Sua equipe está preparando seus shorts!" : "No tasks generated today. Your team is preparing your shorts!"}
+            ) : rawVideos.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground mb-3">
+                  {isPt ? "Seus vídeos estão sendo processados pela equipe:" : "Your videos are being processed by the team:"}
                 </p>
+                {rawVideos.map((rv: any) => {
+                  const statusConfig: Record<string, { icon: typeof Upload; label: string; labelEn: string; color: string }> = {
+                    waiting: { icon: Upload, label: "Enviado", labelEn: "Uploaded", color: "text-muted-foreground" },
+                    editing: { icon: Scissors, label: "Em edição", labelEn: "Editing", color: "text-orange-500" },
+                    ready: { icon: Package, label: "Pronto", labelEn: "Ready", color: "text-primary" },
+                  };
+                  const cfg = statusConfig[rv.status] || statusConfig.waiting;
+                  const Icon = cfg.icon;
+                  return (
+                    <div
+                      key={rv.id}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                    >
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted`}>
+                        <Icon className={`h-4 w-4 ${cfg.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{rv.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(rv.created_at).toLocaleDateString(isPt ? "pt-BR" : "en-US")}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className={`text-xs ${cfg.color}`}>
+                        {isPt ? cfg.label : cfg.labelEn}
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
