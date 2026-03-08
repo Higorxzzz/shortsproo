@@ -44,7 +44,7 @@ const AdminLayout = () => {
   const visibleLinks = adminLinks.filter((link) => teamRole && link.requiredRoles.includes(teamRole));
 
   return (
-    <div className="container max-w-7xl py-6 px-4 md:px-8">
+    <div className="max-w-7xl mx-auto">
       {/* Mobile nav */}
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-2 mb-6 md:hidden">
         {visibleLinks.map((link) => {
