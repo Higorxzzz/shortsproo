@@ -2,18 +2,16 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Send, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Upload, AlertCircle } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
+import VideoUploadDialog from "@/components/VideoUploadDialog";
 
 type TaskWithUser = {
   id: string;
