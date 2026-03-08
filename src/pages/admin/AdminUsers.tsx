@@ -7,9 +7,66 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Youtube, Check, X, Pencil } from "lucide-react";
+
+const ChannelIdCell = ({ user, onSave }: { user: any; onSave: (id: string, val: string) => void }) => {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(user.youtube_channel || "");
+
+  const handleSave = () => {
+    onSave(user.id, value.trim());
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setValue(user.youtube_channel || "");
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="UCxxxxxxx"
+          className="h-7 w-36 text-xs"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") handleCancel();
+          }}
+          autoFocus
+        />
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleSave}>
+          <Check className="h-3 w-3 text-primary" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancel}>
+          <X className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {user.youtube_channel ? (
+        <span className="max-w-[120px] truncate text-xs font-mono" title={user.youtube_channel}>
+          {user.youtube_channel}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">—</span>
+      )}
+      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(true)}>
+        <Pencil className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+};
 
 const AdminUsers = () => {
   const { t } = useLanguage();
+  const isPt = (t as any).language === "pt";
   const queryClient = useQueryClient();
 
   const { data: users = [] } = useQuery({
@@ -35,9 +92,13 @@ const AdminUsers = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success(t.language === "pt" ? "Usuário atualizado!" : "User updated!");
+      toast.success(isPt ? "Usuário atualizado!" : "User updated!");
     },
   });
+
+  const handleChannelSave = (userId: string, channelId: string) => {
+    updateUser.mutate({ userId, updates: { youtube_channel: channelId || null } });
+  };
 
   return (
     <div>
@@ -49,6 +110,12 @@ const AdminUsers = () => {
               <TableRow>
                 <TableHead>{t.admin.userName}</TableHead>
                 <TableHead>{t.admin.userEmail}</TableHead>
+                <TableHead>
+                  <div className="flex items-center gap-1">
+                    <Youtube className="h-3.5 w-3.5" />
+                    Channel ID
+                  </div>
+                </TableHead>
                 <TableHead>{t.admin.userPlan}</TableHead>
                 <TableHead>{t.admin.userStatus}</TableHead>
                 <TableHead>{t.admin.actions}</TableHead>
@@ -59,6 +126,9 @@ const AdminUsers = () => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name || "-"}</TableCell>
                   <TableCell>{user.email || "-"}</TableCell>
+                  <TableCell>
+                    <ChannelIdCell user={user} onSave={handleChannelSave} />
+                  </TableCell>
                   <TableCell>
                     <select
                       className="rounded border border-input bg-background px-2 py-1 text-sm"
@@ -76,8 +146,8 @@ const AdminUsers = () => {
                   <TableCell>
                     <Badge variant={user.suspended ? "destructive" : "default"}>
                       {user.suspended
-                        ? (t.language === "pt" ? "Suspenso" : "Suspended")
-                        : (t.language === "pt" ? "Ativo" : "Active")}
+                        ? (isPt ? "Suspenso" : "Suspended")
+                        : (isPt ? "Ativo" : "Active")}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -95,8 +165,8 @@ const AdminUsers = () => {
               ))}
               {users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    {t.language === "pt" ? "Nenhum usuário encontrado" : "No users found"}
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    {isPt ? "Nenhum usuário encontrado" : "No users found"}
                   </TableCell>
                 </TableRow>
               )}
