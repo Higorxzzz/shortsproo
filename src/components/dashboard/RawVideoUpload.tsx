@@ -249,7 +249,7 @@ const RawVideoUpload = () => {
         {/* Submit button */}
         <Button
           onClick={handleUpload}
-          disabled={uploading || !title.trim() || !file || uploadSuccess}
+          disabled={uploading || !file || uploadSuccess}
           className="w-full gap-2 h-11 text-sm font-semibold"
           size="lg"
         >
