@@ -225,7 +225,7 @@ const AdminProduction = () => {
   }, [rawVideos, activeTab, searchQuery]);
 
   const pendingTotal = counts.waiting + counts.editing + counts.ready;
-  const fileId = extractDriveFileId(driveLink);
+  const allLinksValid = driveLinks.length > 0 && driveLinks.some((l) => extractDriveFileId(l.trim()));
 
   return (
     <div className="space-y-5">
