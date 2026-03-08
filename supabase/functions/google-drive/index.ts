@@ -76,7 +76,7 @@ const CFG_ERR = "DRIVE_CONFIGURATION_ERROR:";
 
 function mapDriveError(raw: string): string {
   if (raw.includes("storageQuotaExceeded")) {
-    return `${CFG_ERR} Service Account cannot upload to personal Google Drive storage. Use a Shared Drive folder as GOOGLE_DRIVE_ROOT_FOLDER_ID.`;
+    return `${CFG_ERR} Storage quota exceeded. Check Drive storage or use a Shared Drive.`;
   }
   return raw;
 }
@@ -101,25 +101,22 @@ async function getMeta(token: string, fileId: string): Promise<DriveMeta> {
   return data;
 }
 
-/** Validates the root folder is a non-trashed folder inside a Shared Drive. Returns driveId. */
-function validateRoot(meta: DriveMeta): string {
+/** Validates the root folder is a non-trashed folder. Returns driveId or null for My Drive. */
+function validateRoot(meta: DriveMeta): string | null {
   if (meta.trashed) throw new Error(`${CFG_ERR} Root folder is in trash.`);
   if (meta.mimeType !== "application/vnd.google-apps.folder")
     throw new Error(`${CFG_ERR} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder.`);
-  if (!meta.driveId)
-    throw new Error(`${CFG_ERR} Root folder is NOT inside a Shared Drive. Service Accounts require a Shared Drive.`);
-  return meta.driveId;
+  return meta.driveId || null;
 }
 
 /**
  * Validates an existing child folder is still valid (not trashed, correct driveId).
  * Returns true if valid, false if stale/invalid.
  */
-async function isValidChildFolder(token: string, folderId: string, expectedDriveId: string): Promise<boolean> {
+async function isValidChildFolder(token: string, folderId: string, expectedDriveId: string | null): Promise<boolean> {
   try {
     const meta = await getMeta(token, folderId);
     if (meta.trashed || meta.mimeType !== "application/vnd.google-apps.folder") return false;
-    // If we have a shared drive, verify it matches
     if (expectedDriveId && meta.driveId !== expectedDriveId) return false;
     return true;
   } catch {
@@ -140,11 +137,11 @@ async function createFolder(token: string, name: string, parentId: string): Prom
   return data.id;
 }
 
-async function findFolder(token: string, name: string, parentId: string, driveId: string): Promise<string | null> {
+async function findFolder(token: string, name: string, parentId: string, driveId: string | null): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const driveParams = driveId
     ? `&supportsAllDrives=true&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`
-    : `&supportsAllDrives=true`;
+    : ``;
   const resp = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)${driveParams}`,
     { headers: { Authorization: `Bearer ${token}` } }
@@ -233,7 +230,7 @@ async function resolveClientFolder(
   token: string,
   clientUserId: string,
   rootFolderId: string,
-  sharedDriveId: string
+  sharedDriveId: string | null
 ): Promise<string> {
   // Query filtering by parent_folder_id to avoid picking up old folders from personal drive
   const { data: existingFolder } = await supabase
@@ -282,7 +279,7 @@ async function resolveMonthFolder(
   token: string,
   clientUserId: string,
   clientFolderId: string,
-  sharedDriveId: string
+  sharedDriveId: string | null
 ): Promise<string> {
   const monthKey = new Date().toISOString().slice(0, 7);
 
