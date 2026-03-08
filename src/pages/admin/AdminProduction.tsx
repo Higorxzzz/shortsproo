@@ -440,7 +440,7 @@ const AdminProduction = () => {
                               className="h-8 gap-1.5 text-xs"
                               onClick={() => {
                                 setDeliverVideo(video);
-                                setDriveLink("");
+                                setDriveLinks(Array(video.shorts_per_day).fill(""));
                               }}
                             >
                               <Send className="h-3.5 w-3.5" />
