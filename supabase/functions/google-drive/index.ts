@@ -69,6 +69,55 @@ async function getAccessToken(sa: ServiceAccountKey): Promise<string> {
   return data.access_token;
 }
 
+const DRIVE_CONFIG_ERROR_PREFIX = "DRIVE_CONFIGURATION_ERROR:";
+
+function mapDriveErrorMessage(rawError: string): string {
+  if (rawError.includes("storageQuotaExceeded")) {
+    return `${DRIVE_CONFIG_ERROR_PREFIX} Service Account cannot upload to personal Google Drive storage. Configure GOOGLE_DRIVE_ROOT_FOLDER_ID as a folder inside a Shared Drive and add the Service Account as Content Manager/Manager.`;
+  }
+
+  return rawError;
+}
+
+interface DriveFolderMetadata {
+  id: string;
+  name: string;
+  mimeType: string;
+  driveId?: string;
+  trashed?: boolean;
+}
+
+async function getFolderMetadata(accessToken: string, folderId: string): Promise<DriveFolderMetadata> {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType,driveId,trashed&supportsAllDrives=true`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Root folder lookup error: ${JSON.stringify(data)}`));
+  return data;
+}
+
+function validateRootFolder(metadata: DriveFolderMetadata) {
+  if (metadata.trashed) {
+    throw new Error(`${DRIVE_CONFIG_ERROR_PREFIX} Configured Google Drive root folder is in trash.`);
+  }
+
+  if (metadata.mimeType !== "application/vnd.google-apps.folder") {
+    throw new Error(`${DRIVE_CONFIG_ERROR_PREFIX} GOOGLE_DRIVE_ROOT_FOLDER_ID must be a folder ID.`);
+  }
+
+  if (!metadata.driveId) {
+    throw new Error(
+      `${DRIVE_CONFIG_ERROR_PREFIX} Root folder is not inside a Shared Drive. Service Accounts require Shared Drive for uploads.`
+    );
+  }
+}
+
 // Google Drive API helpers - all with supportsAllDrives for shared drive support
 async function createFolder(
   accessToken: string,
@@ -91,22 +140,27 @@ async function createFolder(
     }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(`Create folder error: ${JSON.stringify(data)}`);
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Create folder error: ${JSON.stringify(data)}`));
   return data.id;
 }
 
 async function findFolder(
   accessToken: string,
   name: string,
-  parentId: string
+  parentId: string,
+  driveId?: string
 ): Promise<string | null> {
   const q = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const driveParams = driveId
+    ? `&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true`
+    : "&corpora=allDrives&includeItemsFromAllDrives=true";
+
   const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`,
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true${driveParams}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const data = await resp.json();
-  if (!resp.ok) throw new Error(`Find folder error: ${JSON.stringify(data)}`);
+  if (!resp.ok) throw new Error(mapDriveErrorMessage(`Find folder error: ${JSON.stringify(data)}`));
   return data.files?.[0]?.id || null;
 }
 
