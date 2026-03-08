@@ -9,7 +9,7 @@ import { useState } from "react";
 
 export const Navbar = () => {
   const { t } = useLanguage();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isTeamMember, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
