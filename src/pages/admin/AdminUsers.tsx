@@ -181,7 +181,7 @@ const AdminUsers = () => {
               ))}
               {users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     {isPt ? "Nenhum usuário encontrado" : "No users found"}
                   </TableCell>
                 </TableRow>
