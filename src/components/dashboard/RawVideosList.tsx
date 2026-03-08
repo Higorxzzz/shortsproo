@@ -26,13 +26,18 @@ const RawVideosList = () => {
   });
 
   const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-    editing: {
-      label: isPt ? "Em edição" : "Editing",
+    waiting: {
+      label: isPt ? "Aguardando time de edição" : "Waiting for editing team",
       icon: Clock,
+      color: "text-yellow-500 bg-yellow-500/10",
+    },
+    editing: {
+      label: isPt ? "Nosso time está editando seu vídeo" : "Our team is editing your video",
+      icon: Film,
       color: "text-orange-500 bg-orange-500/10",
     },
     completed: {
-      label: isPt ? "Concluído" : "Completed",
+      label: isPt ? "Nosso time de edição terminou seu vídeo!" : "Our editing team finished your video!",
       icon: CheckCircle2,
       color: "text-emerald-500 bg-emerald-500/10",
     },
