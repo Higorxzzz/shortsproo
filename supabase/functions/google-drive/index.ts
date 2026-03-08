@@ -76,7 +76,7 @@ const CFG_ERR = "DRIVE_CONFIGURATION_ERROR:";
 
 function mapDriveError(raw: string): string {
   if (raw.includes("storageQuotaExceeded")) {
-    return `${CFG_ERR} Service Account cannot upload to personal Google Drive storage. Use a Shared Drive folder as GOOGLE_DRIVE_ROOT_FOLDER_ID.`;
+    return `${CFG_ERR} Storage quota exceeded. Check Drive storage or use a Shared Drive.`;
   }
   return raw;
 }
