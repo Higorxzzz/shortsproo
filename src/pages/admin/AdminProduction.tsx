@@ -8,12 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Send, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, Film, Filter, Loader2, MessageSquare, RefreshCw, Upload, AlertCircle } from "lucide-react";
 import TaskComments from "@/components/TaskComments";
+import VideoUploadDialog from "@/components/VideoUploadDialog";
 
 type TaskWithUser = {
   id: string;
@@ -48,34 +46,27 @@ const AdminProduction = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
-  // Delivery dialog state
-  const [deliveryTask, setDeliveryTask] = useState<TaskWithUser | null>(null);
-  const [videoTitle, setVideoTitle] = useState("");
-  const [driveLink, setDriveLink] = useState("");
-  const [deliveryNotes, setDeliveryNotes] = useState("");
+  // Upload dialog state
+  const [uploadTask, setUploadTask] = useState<TaskWithUser | null>(null);
 
   // Fetch tasks with user info
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["production-tasks"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
-
       const { data: taskRows, error: taskError } = await supabase
         .from("tasks")
         .select("*")
         .eq("task_date", today)
         .order("created_at", { ascending: true });
-
       if (taskError) throw taskError;
       if (!taskRows?.length) return [];
 
       const userIds = [...new Set(taskRows.map((t) => t.user_id))];
-
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, name, email, plan_id, youtube_channel, country, language")
         .in("id", userIds);
-
       const { data: plans } = await supabase.from("plans").select("id, name, shorts_per_day, price");
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
@@ -113,60 +104,12 @@ const AdminProduction = () => {
     onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
   });
 
-  // Deliver video mutation
-  const deliverMutation = useMutation({
-    mutationFn: async ({ taskId, userId }: { taskId: string; userId: string }) => {
-      // 1. Create video
-      const { data: video, error: videoError } = await supabase
-        .from("videos")
-        .insert({ title: videoTitle, drive_link: driveLink, user_id: userId, status: "new" })
-        .select("id")
-        .single();
-      if (videoError) throw videoError;
-
-      // 2. Update task
-      const { error: taskError } = await supabase
-        .from("tasks")
-        .update({
-          status: "completed",
-          video_id: video.id,
-          completed_by: user?.id,
-          completed_at: new Date().toISOString(),
-          notes: deliveryNotes || null,
-        })
-        .eq("id", taskId);
-      if (taskError) throw taskError;
-
-      // 3. Log
-      await supabase.from("production_logs").insert({
-        task_id: taskId,
-        user_id: userId,
-        editor_id: user?.id,
-        video_id: video.id,
-        action: "delivered",
-        notes: deliveryNotes || null,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      setDeliveryTask(null);
-      setVideoTitle("");
-      setDriveLink("");
-      setDeliveryNotes("");
-      toast({ title: isPt ? "Vídeo entregue!" : "Video delivered!" });
-    },
-    onError: () => toast({ title: isPt ? "Erro ao entregar" : "Delivery error", variant: "destructive" }),
-  });
-
   // Group tasks by user
   const groupedByUser = (() => {
     if (!tasks) return [];
     const map = new Map<string, { user: TaskWithUser; tasks: TaskWithUser[] }>();
     for (const task of tasks) {
-      if (!map.has(task.user_id)) {
-        map.set(task.user_id, { user: task, tasks: [] });
-      }
+      if (!map.has(task.user_id)) map.set(task.user_id, { user: task, tasks: [] });
       map.get(task.user_id)!.tasks.push(task);
     }
     return Array.from(map.values());
@@ -184,8 +127,7 @@ const AdminProduction = () => {
         !(g.user.user_name || "").toLowerCase().includes(q) &&
         !(g.user.user_email || "").toLowerCase().includes(q) &&
         !(g.user.youtube_channel || "").toLowerCase().includes(q)
-      )
-        return false;
+      ) return false;
     }
     return true;
   });
@@ -206,9 +148,9 @@ const AdminProduction = () => {
   const priorityBadge = (planName: string | null) => {
     switch (planName) {
       case "Pro":
-        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20">{isPt ? "Alta" : "High"}</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">{isPt ? "Alta" : "High"}</Badge>;
       case "Growth":
-        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">{isPt ? "Média" : "Medium"}</Badge>;
+        return <Badge className="bg-accent text-accent-foreground">{isPt ? "Média" : "Medium"}</Badge>;
       default:
         return <Badge className="bg-muted text-muted-foreground">{isPt ? "Normal" : "Normal"}</Badge>;
     }
@@ -223,12 +165,12 @@ const AdminProduction = () => {
             {isPt ? "Gerencie as entregas diárias de shorts" : "Manage daily shorts deliveries"}
           </p>
         </div>
-      {(teamRole === "admin" || teamRole === "manager") && (
-        <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-          {generateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-          {isPt ? "Gerar Tarefas de Hoje" : "Generate Today's Tasks"}
-        </Button>
-      )}
+        {(teamRole === "admin" || teamRole === "manager") && (
+          <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
+            {generateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {isPt ? "Gerar Tarefas de Hoje" : "Generate Today's Tasks"}
+          </Button>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -244,7 +186,7 @@ const AdminProduction = () => {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-green-500/10 p-2"><CheckCircle2 className="h-5 w-5 text-green-500" /></div>
+            <div className="rounded-lg bg-primary/10 p-2"><CheckCircle2 className="h-5 w-5 text-primary" /></div>
             <div>
               <p className="text-2xl font-bold">{completedTasks}</p>
               <p className="text-xs text-muted-foreground">{isPt ? "Concluídas" : "Completed"}</p>
@@ -253,7 +195,7 @@ const AdminProduction = () => {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-amber-500/10 p-2"><Clock className="h-5 w-5 text-amber-500" /></div>
+            <div className="rounded-lg bg-accent p-2"><Clock className="h-5 w-5 text-accent-foreground" /></div>
             <div>
               <p className="text-2xl font-bold">{pendingTasks}</p>
               <p className="text-xs text-muted-foreground">{isPt ? "Pendentes" : "Pending"}</p>
@@ -265,12 +207,7 @@ const AdminProduction = () => {
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={isPt ? "Buscar usuário..." : "Search user..."}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-48"
-        />
+        <Input placeholder={isPt ? "Buscar usuário..." : "Search user..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-48" />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -314,7 +251,7 @@ const AdminProduction = () => {
             const total = group.tasks.length;
             const allDone = completed === total;
             return (
-              <Card key={group.user.user_id} className={allDone ? "border-green-500/30 bg-green-500/5" : ""}>
+              <Card key={group.user.user_id} className={allDone ? "border-primary/30 bg-primary/5" : ""}>
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
@@ -326,9 +263,7 @@ const AdminProduction = () => {
                     <div className="flex items-center gap-2">
                       {priorityBadge(group.user.plan_name)}
                       <Badge variant="outline">{group.user.plan_name || "—"}</Badge>
-                      <Badge variant={allDone ? "default" : "secondary"}>
-                        {completed}/{total}
-                      </Badge>
+                      <Badge variant={allDone ? "default" : "secondary"}>{completed}/{total}</Badge>
                     </div>
                   </div>
                 </CardHeader>
@@ -338,13 +273,11 @@ const AdminProduction = () => {
                       const isCommentsOpen = expandedComments.has(task.id);
                       return (
                         <div key={task.id} className="w-full">
-                          <div
-                            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                              task.status === "completed"
-                                ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
-                                : "border-border bg-card"
-                            }`}
-                          >
+                          <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                            task.status === "completed"
+                              ? "border-primary/30 bg-primary/10 text-primary"
+                              : "border-border bg-card"
+                          }`}>
                             {task.status === "completed" ? (
                               <CheckCircle2 className="h-4 w-4" />
                             ) : (
@@ -352,28 +285,17 @@ const AdminProduction = () => {
                             )}
                             <span>Short {task.task_number}</span>
                             <div className="ml-auto flex items-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2"
-                                onClick={() => {
-                                  const next = new Set(expandedComments);
-                                  if (isCommentsOpen) next.delete(task.id);
-                                  else next.add(task.id);
-                                  setExpandedComments(next);
-                                }}
-                              >
+                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => {
+                                const next = new Set(expandedComments);
+                                if (isCommentsOpen) next.delete(task.id); else next.add(task.id);
+                                setExpandedComments(next);
+                              }}>
                                 <MessageSquare className="h-3 w-3" />
                               </Button>
                               {task.status !== "completed" && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 px-2"
-                                  onClick={() => setDeliveryTask(task)}
-                                >
-                                  <Send className="mr-1 h-3 w-3" />
-                                  {isPt ? "Enviar" : "Deliver"}
+                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setUploadTask(task)}>
+                                  <Upload className="mr-1 h-3 w-3" />
+                                  {isPt ? "Enviar" : "Upload"}
                                 </Button>
                               )}
                             </div>
@@ -390,43 +312,18 @@ const AdminProduction = () => {
         </div>
       )}
 
-      {/* Delivery Dialog */}
-      <Dialog open={!!deliveryTask} onOpenChange={(open) => !open && setDeliveryTask(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{isPt ? "Enviar Vídeo" : "Deliver Video"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <p><strong>{isPt ? "Usuário:" : "User:"}</strong> {deliveryTask?.user_name || deliveryTask?.user_email}</p>
-              <p><strong>{isPt ? "Tarefa:" : "Task:"}</strong> Short {deliveryTask?.task_number}</p>
-              <p><strong>{isPt ? "Plano:" : "Plan:"}</strong> {deliveryTask?.plan_name}</p>
-            </div>
-            <div>
-              <Label>{isPt ? "Título do vídeo" : "Video title"}</Label>
-              <Input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder={isPt ? "Ex: Top 5 dicas..." : "Ex: Top 5 tips..."} />
-            </div>
-            <div>
-              <Label>{isPt ? "Link do Google Drive" : "Google Drive link"}</Label>
-              <Input value={driveLink} onChange={(e) => setDriveLink(e.target.value)} placeholder="https://drive.google.com/..." />
-            </div>
-            <div>
-              <Label>{isPt ? "Observações (opcional)" : "Notes (optional)"}</Label>
-              <Textarea value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} rows={3} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeliveryTask(null)}>{isPt ? "Cancelar" : "Cancel"}</Button>
-            <Button
-              onClick={() => deliveryTask && deliverMutation.mutate({ taskId: deliveryTask.id, userId: deliveryTask.user_id })}
-              disabled={!videoTitle || !driveLink || deliverMutation.isPending}
-            >
-              {deliverMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              {isPt ? "Entregar" : "Deliver"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Upload Dialog */}
+      {uploadTask && (
+        <VideoUploadDialog
+          open={!!uploadTask}
+          onOpenChange={(open) => !open && setUploadTask(null)}
+          clientUserId={uploadTask.user_id}
+          clientName={uploadTask.user_name || uploadTask.user_email || "—"}
+          taskId={uploadTask.id}
+          taskNumber={uploadTask.task_number}
+          planName={uploadTask.plan_name || undefined}
+        />
+      )}
     </div>
   );
 };

@@ -46,6 +46,36 @@ export type Database = {
           },
         ]
       }
+      drive_folders: {
+        Row: {
+          created_at: string
+          drive_folder_id: string
+          folder_name: string
+          folder_type: string
+          id: string
+          parent_folder_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drive_folder_id: string
+          folder_name: string
+          folder_type?: string
+          id?: string
+          parent_folder_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drive_folder_id?: string
+          folder_name?: string
+          folder_type?: string
+          id?: string
+          parent_folder_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -215,6 +245,33 @@ export type Database = {
           },
         ]
       }
+      upload_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -235,7 +292,11 @@ export type Database = {
       }
       videos: {
         Row: {
+          drive_file_id: string | null
           drive_link: string
+          file_name: string | null
+          file_size: number | null
+          folder_id: string | null
           id: string
           status: string
           title: string
@@ -243,7 +304,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          drive_file_id?: string | null
           drive_link: string
+          file_name?: string | null
+          file_size?: number | null
+          folder_id?: string | null
           id?: string
           status?: string
           title: string
@@ -251,7 +316,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          drive_file_id?: string | null
           drive_link?: string
+          file_name?: string | null
+          file_size?: number | null
+          folder_id?: string | null
           id?: string
           status?: string
           title?: string

@@ -199,7 +199,10 @@ const Dashboard = () => {
                               variant="outline"
                               className="h-8 text-xs"
                               onClick={() => {
-                                window.open(video.drive_link, "_blank");
+                                const dlUrl = video.drive_file_id
+                                  ? `https://drive.google.com/uc?export=download&id=${video.drive_file_id}`
+                                  : video.drive_link;
+                                window.open(dlUrl, "_blank");
                                 if (video.status === "new") markDownloaded.mutate(video.id);
                               }}
                             >
@@ -273,54 +276,69 @@ const Dashboard = () => {
                   <TableRow>
                     <TableHead>{t.dashboard.videoTitle}</TableHead>
                     <TableHead>{t.dashboard.date}</TableHead>
+                    <TableHead>{isPt ? "Tamanho" : "Size"}</TableHead>
                     <TableHead>{t.dashboard.status}</TableHead>
                     <TableHead className="text-right">{isPt ? "Ações" : "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredHistory.map((video: any) => (
-                    <TableRow key={video.id}>
-                      <TableCell className="font-medium">{video.title}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(video.uploaded_at).toLocaleDateString(isPt ? "pt-BR" : "en-US", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={video.status === "new" ? "default" : "secondary"}
-                          className={video.status === "downloaded" ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" : ""}
-                        >
-                          {video.status === "new" ? (
-                            <><Film className="mr-1 h-3 w-3" />{t.dashboard.statusNew}</>
-                          ) : (
-                            <><CheckCircle2 className="mr-1 h-3 w-3" />{t.dashboard.statusDownloaded}</>
-                          )}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8"
-                            onClick={() => {
-                              window.open(video.drive_link, "_blank");
-                              if (video.status === "new") markDownloaded.mutate(video.id);
-                            }}
+                  {filteredHistory.map((video: any) => {
+                    const downloadUrl = video.drive_file_id
+                      ? `https://drive.google.com/uc?export=download&id=${video.drive_file_id}`
+                      : video.drive_link;
+                    const viewUrl = video.drive_file_id
+                      ? `https://drive.google.com/file/d/${video.drive_file_id}/view`
+                      : video.drive_link;
+                    const fileSize = video.file_size
+                      ? video.file_size < 1024 * 1024
+                        ? `${(video.file_size / 1024).toFixed(1)} KB`
+                        : `${(video.file_size / (1024 * 1024)).toFixed(1)} MB`
+                      : "—";
+                    return (
+                      <TableRow key={video.id}>
+                        <TableCell className="font-medium">{video.title}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(video.uploaded_at).toLocaleDateString(isPt ? "pt-BR" : "en-US", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{fileSize}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={video.status === "new" ? "default" : "secondary"}
+                            className={video.status === "downloaded" ? "bg-primary/10 text-primary border-primary/20" : ""}
                           >
-                            <Download className="mr-1 h-3 w-3" />
-                            {t.dashboard.download}
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8" onClick={() => window.open(video.drive_link, "_blank")}>
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {video.status === "new" ? (
+                              <><Film className="mr-1 h-3 w-3" />{t.dashboard.statusNew}</>
+                            ) : (
+                              <><CheckCircle2 className="mr-1 h-3 w-3" />{t.dashboard.statusDownloaded}</>
+                            )}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8"
+                              onClick={() => {
+                                window.open(downloadUrl, "_blank");
+                                if (video.status === "new") markDownloaded.mutate(video.id);
+                              }}
+                            >
+                              <Download className="mr-1 h-3 w-3" />
+                              {t.dashboard.download}
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8" onClick={() => window.open(viewUrl, "_blank")}>
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
