@@ -13,7 +13,7 @@ const Register = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: "", email: "", password: "", youtube_channel: "", country: "", language: "pt",
+    name: "", email: "", password: "", youtube_channel: "",
   });
   const [loading, setLoading] = useState(false);
 
