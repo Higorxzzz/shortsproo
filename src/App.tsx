@@ -19,6 +19,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminVideos from "./pages/admin/AdminVideos";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminProduction from "./pages/admin/AdminProduction";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
