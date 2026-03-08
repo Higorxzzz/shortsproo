@@ -95,8 +95,8 @@ const MyVideos = () => {
   const todayStr = new Date().toDateString();
   const todayVideos = videos.filter((v: any) => new Date(v.uploaded_at).toDateString() === todayStr);
   const todayDeliveredCount = todayVideos.length;
-  const todayDownloadedCount = todayVideos.filter((v: any) => v.status === "downloaded").length;
-  const todayDeliveryProgress = todayDeliveredCount > 0 ? Math.round((todayDownloadedCount / todayDeliveredCount) * 100) : 0;
+  const shortsPerDay = plan?.shorts_per_day || todayDeliveredCount || 1;
+  const todayDeliveryProgress = todayDeliveredCount > 0 ? Math.min(100, Math.round((todayDeliveredCount / shortsPerDay) * 100)) : 0;
 
   if (!user) return null;
 
