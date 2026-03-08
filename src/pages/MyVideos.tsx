@@ -53,6 +53,27 @@ const MyVideos = () => {
     },
   });
 
+  const { data: rawVideos = [] } = useQuery({
+    queryKey: ["my-raw-videos", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("raw_videos")
+        .select("*")
+        .eq("user_id", user!.id)
+        .in("status", ["waiting", "editing", "ready"])
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const markDownloaded = useMutation({
+    mutationFn: async (videoId: string) => {
+      await supabase.from("videos").update({ status: "downloaded" }).eq("id", videoId);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["videos"] }),
+  });
+
   const plan = (profile as any)?.plans;
   const newVideosCount = videos.filter((v: any) => v.status === "new").length;
 
