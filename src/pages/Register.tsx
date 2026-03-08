@@ -30,8 +30,6 @@ const Register = () => {
         data: {
           name: form.name,
           youtube_channel: form.youtube_channel,
-          country: form.country,
-          language: form.language,
         },
       },
     });
