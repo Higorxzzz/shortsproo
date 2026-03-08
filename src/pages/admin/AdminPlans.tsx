@@ -90,7 +90,8 @@ const AdminPlans = () => {
               <TableRow>
                 <TableHead>{t.admin.planName}</TableHead>
                 <TableHead>{t.admin.planShorts}</TableHead>
-                <TableHead>{t.admin.planPrice}</TableHead>
+                <TableHead>Preço 1º mês</TableHead>
+                <TableHead>Preço 2º mês+</TableHead>
                 <TableHead>{t.admin.planDesc}</TableHead>
                 <TableHead>{t.admin.actions}</TableHead>
               </TableRow>
