@@ -62,9 +62,9 @@ const DeliveryCalendar = ({ videos, onPreview }: DeliveryCalendarProps) => {
   const selectedVideos = selectedDay ? videosByDate.get(selectedDay) || [] : [];
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-2">
+    <div className="space-y-4">
+      <Card className="max-w-md">
+        <CardHeader className="pb-1 px-4 pt-3">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
