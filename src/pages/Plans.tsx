@@ -143,8 +143,13 @@ const Plans = () => {
                   <CardTitle className="font-heading text-xl">{plan.name}</CardTitle>
                   <div className="mt-2">
                     <span className="text-3xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground">/{isPt ? "mês" : "mo"}</span>
+                    <span className="text-muted-foreground"> /{isPt ? "1º mês" : "1st mo"}</span>
                   </div>
+                  {plan.price_second_month > 0 && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {isPt ? "A partir do 2º mês:" : "From 2nd month:"} ${plan.price_second_month}/{isPt ? "mês" : "mo"}
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
