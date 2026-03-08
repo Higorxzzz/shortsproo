@@ -251,6 +251,20 @@ const MyVideos = () => {
                   );
                 })}
               </div>
+            ) : !plan ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <Film className="mb-3 h-10 w-10 text-muted-foreground" />
+                <p className="mb-3 text-muted-foreground">{t.dashboard.noPlan}</p>
+                <Button asChild><Link to="/plans">{t.dashboard.selectPlan}</Link></Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center py-8 text-center">
+                <CheckCircle2 className="mb-3 h-10 w-10 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {isPt ? "Nenhum vídeo pendente. Envie vídeos brutos para iniciar!" : "No pending videos. Upload raw videos to get started!"}
+                </p>
+                <Button asChild className="mt-3"><Link to="/dashboard">{isPt ? "Enviar vídeo" : "Upload video"}</Link></Button>
+              </div>
             )}
           </CardContent>
         </Card>
