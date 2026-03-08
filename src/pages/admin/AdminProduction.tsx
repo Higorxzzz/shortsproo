@@ -88,7 +88,7 @@ const AdminProduction = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("waiting");
   const [searchQuery, setSearchQuery] = useState("");
   const [deliverVideo, setDeliverVideo] = useState<RawVideo | null>(null);
-  const [driveLink, setDriveLink] = useState("");
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
 
   // ---------- Fetch ----------
   const { data: rawVideos = [], isLoading } = useQuery({
