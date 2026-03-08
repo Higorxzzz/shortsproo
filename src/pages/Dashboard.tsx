@@ -75,6 +75,9 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Announcements */}
+      <AnnouncementBanner />
+
       {/* Hero section */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}

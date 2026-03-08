@@ -52,6 +52,7 @@ const App = () => (
                   <Route path="/admin/videos" element={<AdminVideos />} />
                   <Route path="/admin/raw-videos" element={<AdminRawVideos />} />
                   <Route path="/admin/chats" element={<AdminChats />} />
+                  <Route path="/admin/announcements" element={<AdminAnnouncements />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
