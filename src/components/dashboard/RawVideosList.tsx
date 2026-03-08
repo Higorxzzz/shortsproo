@@ -4,12 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Film, Clock, CheckCircle2, Loader2, Inbox } from "lucide-react";
+import { Film, Clock, CheckCircle2, Loader2, Inbox, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
 const RawVideosList = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isPt = (t as any).language === "pt";
 
   const { data: rawVideos = [], isLoading } = useQuery({
@@ -26,13 +30,18 @@ const RawVideosList = () => {
   });
 
   const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-    editing: {
-      label: isPt ? "Em edição" : "Editing",
+    waiting: {
+      label: isPt ? "Aguardando time de edição" : "Waiting for editing team",
       icon: Clock,
+      color: "text-yellow-500 bg-yellow-500/10",
+    },
+    editing: {
+      label: isPt ? "Nosso time está editando seu vídeo" : "Our team is editing your video",
+      icon: Film,
       color: "text-orange-500 bg-orange-500/10",
     },
     completed: {
-      label: isPt ? "Concluído" : "Completed",
+      label: isPt ? "Nosso time de edição terminou seu vídeo!" : "Our editing team finished your video!",
       icon: CheckCircle2,
       color: "text-emerald-500 bg-emerald-500/10",
     },
@@ -55,11 +64,36 @@ const RawVideosList = () => {
               </p>
             </div>
           </div>
-          {rawVideos.length > 0 && (
-            <Badge variant="outline" className="text-xs font-medium">
-              {rawVideos.length}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {rawVideos.length > 0 && (
+              <Badge variant="outline" className="text-xs font-medium">
+                {rawVideos.length}
+              </Badge>
+            )}
+            {rawVideos.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+                onClick={async () => {
+                  const { error } = await supabase
+                    .from("raw_videos")
+                    .delete()
+                    .eq("user_id", user!.id)
+                    .eq("status", "completed");
+                  if (error) {
+                    toast.error(isPt ? "Erro ao limpar histórico" : "Error clearing history");
+                  } else {
+                    toast.success(isPt ? "Histórico limpo!" : "History cleared!");
+                    queryClient.invalidateQueries({ queryKey: ["raw-videos"] });
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {isPt ? "Limpar" : "Clear"}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -83,7 +117,7 @@ const RawVideosList = () => {
           <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
             <AnimatePresence mode="popLayout">
               {rawVideos.map((video: any, i: number) => {
-                const config = statusConfig[video.status] || statusConfig.editing;
+                const config = statusConfig[video.status] || statusConfig.waiting;
                 const StatusIcon = config.icon;
                 const colorClasses = config.color;
 
@@ -100,6 +134,8 @@ const RawVideosList = () => {
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClasses}`}>
                       {video.status === "editing" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : video.status === "waiting" ? (
+                        <Clock className="h-4 w-4" />
                       ) : (
                         <StatusIcon className="h-4 w-4" />
                       )}
@@ -128,9 +164,19 @@ const RawVideosList = () => {
                           </>
                         )}
                       </div>
+                      {video.status === "waiting" && (
+                        <p className="mt-2 text-[11px] font-medium text-yellow-500/80">
+                          {isPt ? "Aguardando time de edição..." : "Waiting for editing team..."}
+                        </p>
+                      )}
                       {video.status === "editing" && (
                         <p className="mt-2 text-[11px] font-medium text-orange-500/80">
                           {isPt ? "Nosso time está editando seu vídeo..." : "Our team is editing your video..."}
+                        </p>
+                      )}
+                      {video.status === "completed" && (
+                        <p className="mt-2 text-[11px] font-medium text-emerald-500/80">
+                          {isPt ? "Edição finalizada! 🎉" : "Editing finished! 🎉"}
                         </p>
                       )}
                     </div>
