@@ -38,7 +38,7 @@ const PRIORITY_ORDER: Record<string, number> = { Pro: 1, Growth: 2, Creator: 3, 
 
 const AdminProduction = () => {
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, teamRole } = useAuth();
   const queryClient = useQueryClient();
   const isPt = t.language === "pt";
 
@@ -46,6 +46,7 @@ const AdminProduction = () => {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
   // Delivery dialog state
   const [deliveryTask, setDeliveryTask] = useState<TaskWithUser | null>(null);
