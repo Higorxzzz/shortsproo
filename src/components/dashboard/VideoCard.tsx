@@ -31,7 +31,7 @@ const VideoCard = ({ video, onPreview }: VideoCardProps) => {
 
   const fileId = extractFileId(video);
   const previewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
-  const downloadUrl = fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : video.drive_link;
+  const downloadUrl = fileId ? `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t` : video.drive_link;
   const viewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/view` : video.drive_link;
 
   const dateStr = new Date(video.uploaded_at).toLocaleDateString(isPt ? "pt-BR" : "en-US", {
