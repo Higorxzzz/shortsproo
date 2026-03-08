@@ -222,6 +222,25 @@ const AdminProduction = () => {
     onError: () => toast({ title: isPt ? "Erro ao atualizar" : "Update error", variant: "destructive" }),
   });
 
+  // ---------- Delete delivered video & reset task ----------
+  const deleteVideoMutation = useMutation({
+    mutationFn: async ({ taskId, videoId }: { taskId: string; videoId: string }) => {
+      // Reset task back to ready
+      await supabase
+        .from("tasks")
+        .update({ status: "ready", video_id: null, completed_at: null, completed_by: null })
+        .eq("id", taskId);
+      // Delete video
+      await supabase.from("videos").delete().eq("id", videoId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["production-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      toast({ title: isPt ? "Vídeo removido" : "Video removed" });
+    },
+    onError: () => toast({ title: isPt ? "Erro" : "Error", variant: "destructive" }),
+  });
+
   // ---------- Group & filter ----------
   const grouped = useMemo<UserGroup[]>(() => {
     if (!tasks) return [];
