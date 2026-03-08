@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 const CACHE_TTL_MINUTES = 360;
-const DAILY_QUOTA_LIMIT = 10000; // YouTube default
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -71,7 +70,6 @@ Deno.serve(async (req) => {
     quotaUsed += 1;
 
     if (!channelRes.ok || !channelData.items?.length) {
-      // Log quota even on failure
       await supabase.from("youtube_quota_log").insert({
         channel_id: channelId,
         units_used: quotaUsed,
@@ -100,7 +98,7 @@ Deno.serve(async (req) => {
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
     // Step 2: Fetch playlist items (1 quota unit per page, up to 3 pages)
-    let allVideos: any[] = [];
+    let allVideoItems: any[] = [];
     let nextPageToken: string | undefined;
     let pages = 0;
 
@@ -118,7 +116,6 @@ Deno.serve(async (req) => {
 
       if (!res.ok) {
         if (res.status === 403) {
-          // Log quota on 403
           await supabase.from("youtube_quota_log").insert({
             channel_id: channelId,
             units_used: quotaUsed,
@@ -147,25 +144,66 @@ Deno.serve(async (req) => {
           item.snippet?.title !== "Private video"
       );
 
-      for (const item of items) {
-        const snippet = item.snippet;
-        const thumbs = snippet.thumbnails || {};
-        const thumbnail =
-          thumbs.maxres?.url || thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url;
-
-        allVideos.push({
-          channel_id: channelId,
-          video_id: snippet.resourceId.videoId,
-          video_title: snippet.title,
-          video_description: snippet.description || null,
-          thumbnail_url: thumbnail || null,
-          published_at: snippet.publishedAt || null,
-        });
-      }
+      allVideoItems.push(...items);
 
       nextPageToken = data.nextPageToken;
       if (!nextPageToken) break;
       pages++;
+    }
+
+    // Step 3: Filter only Shorts by checking video duration (≤ 60s)
+    // Batch video IDs in groups of 50 for the videos.list API
+    const videoIds = allVideoItems.map((item: any) => item.snippet.resourceId.videoId);
+    const shortVideoIds = new Set<string>();
+
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const detailsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
+      detailsUrl.searchParams.set("part", "contentDetails");
+      detailsUrl.searchParams.set("id", batch.join(","));
+      detailsUrl.searchParams.set("key", youtubeApiKey);
+
+      const detailsRes = await fetch(detailsUrl.toString());
+      const detailsData = await detailsRes.json();
+      quotaUsed += 1;
+
+      if (detailsRes.ok && detailsData.items) {
+        for (const v of detailsData.items) {
+          const duration = v.contentDetails?.duration || "";
+          // Parse ISO 8601 duration (PT#M#S or PT#S)
+          const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+          if (match) {
+            const hours = parseInt(match[1] || "0");
+            const minutes = parseInt(match[2] || "0");
+            const seconds = parseInt(match[3] || "0");
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            if (totalSeconds <= 60) {
+              shortVideoIds.add(v.id);
+            }
+          }
+        }
+      }
+    }
+
+    // Build final list with only Shorts
+    const allVideos: any[] = [];
+    for (const item of allVideoItems) {
+      const videoId = item.snippet.resourceId.videoId;
+      if (!shortVideoIds.has(videoId)) continue;
+
+      const snippet = item.snippet;
+      const thumbs = snippet.thumbnails || {};
+      const thumbnail =
+        thumbs.maxres?.url || thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url;
+
+      allVideos.push({
+        channel_id: channelId,
+        video_id: videoId,
+        video_title: snippet.title,
+        video_description: snippet.description || null,
+        thumbnail_url: thumbnail || null,
+        published_at: snippet.publishedAt || null,
+      });
     }
 
     // Sort by published_at desc
