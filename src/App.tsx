@@ -21,6 +21,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProduction from "./pages/admin/AdminProduction";
 import AdminTeam from "./pages/admin/AdminTeam";
 import AdminRawVideos from "./pages/admin/AdminRawVideos";
+import AdminChats from "./pages/admin/AdminChats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
