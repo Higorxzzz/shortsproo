@@ -80,7 +80,7 @@ const Plans = () => {
     setActivatingTrial(false);
   };
 
-
+  const { data: subscription, refetch: refetchSub } = useQuery({
     queryKey: ["subscription", user?.id],
     enabled: !!user,
     refetchInterval: 60000,
