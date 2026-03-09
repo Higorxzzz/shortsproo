@@ -192,8 +192,8 @@ const AdminTeam = () => {
               {isPt ? "Membros da Equipe" : "Team Members"} ({teamMembers?.length || 0})
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="overflow-x-auto">
+            <Table className="min-w-[500px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>{isPt ? "Nome" : "Name"}</TableHead>
