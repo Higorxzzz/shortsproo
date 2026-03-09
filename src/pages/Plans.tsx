@@ -52,7 +52,35 @@ const Plans = () => {
     },
   });
 
-  const { data: subscription, refetch: refetchSub } = useQuery({
+  // Check if user already activated trial
+  const { data: profile } = useQuery({
+    queryKey: ["profile-trial", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("trial_start, plan_id").eq("id", user!.id).single();
+      return data;
+    },
+  });
+
+  const trialActive = !!profile?.trial_start;
+  const trialExpired = trialActive && trialSettings
+    ? new Date(profile.trial_start).getTime() + trialSettings.days * 86400000 < Date.now()
+    : false;
+
+  const handleActivateTrial = async () => {
+    if (!user) { navigate("/register"); return; }
+    setActivatingTrial(true);
+    const { error } = await supabase.from("profiles").update({ trial_start: new Date().toISOString() }).eq("id", user.id);
+    if (error) {
+      toast.error(isPt ? "Erro ao ativar trial" : "Error activating trial");
+    } else {
+      toast.success(isPt ? "Teste gratuito ativado!" : "Free trial activated!");
+      queryClient.invalidateQueries({ queryKey: ["profile-trial"] });
+    }
+    setActivatingTrial(false);
+  };
+
+
     queryKey: ["subscription", user?.id],
     enabled: !!user,
     refetchInterval: 60000,
