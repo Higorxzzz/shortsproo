@@ -148,6 +148,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       production_logs: {
         Row: {
           action: string
@@ -206,6 +224,7 @@ export type Database = {
           name: string | null
           plan_id: string | null
           suspended: boolean | null
+          trial_start: string | null
           updated_at: string
           youtube_channel: string | null
           youtube_channel_id: string | null
@@ -219,6 +238,7 @@ export type Database = {
           name?: string | null
           plan_id?: string | null
           suspended?: boolean | null
+          trial_start?: string | null
           updated_at?: string
           youtube_channel?: string | null
           youtube_channel_id?: string | null
@@ -232,6 +252,7 @@ export type Database = {
           name?: string | null
           plan_id?: string | null
           suspended?: boolean | null
+          trial_start?: string | null
           updated_at?: string
           youtube_channel?: string | null
           youtube_channel_id?: string | null
