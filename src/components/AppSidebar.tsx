@@ -1,5 +1,6 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlatformSettings } from "@/contexts/PlatformSettingsContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -48,6 +49,7 @@ function SidebarLink({ to, icon: Icon, label, collapsed }: { to: string; icon: R
 
 export function AppSidebar() {
   const { t, language, setLanguage } = useLanguage();
+  const { platformName } = usePlatformSettings();
   const { user, isTeamMember, teamRole, signOut } = useAuth();
   const { state } = useSidebar();
   const { theme, setTheme } = useTheme();
@@ -102,7 +104,7 @@ export function AppSidebar() {
             <Zap className="h-4 w-4 text-primary" />
           </div>
           {!collapsed && (
-            <span className="font-heading text-lg font-bold">ShortsPro</span>
+            <span className="font-heading text-lg font-bold">{platformName}</span>
           )}
         </NavLink>
       </SidebarHeader>

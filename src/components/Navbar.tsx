@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlatformSettings } from "@/contexts/PlatformSettingsContext";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
@@ -10,6 +11,7 @@ import { useState } from "react";
 export const Navbar = () => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
+  const { platformName } = usePlatformSettings();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -20,12 +22,12 @@ export const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container flex h-14 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 font-heading text-lg font-bold text-foreground">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
             <Zap className="h-4 w-4 text-primary" />
           </div>
-          ShortsPro
+          <span className="hidden sm:inline">{platformName}</span>
         </Link>
 
         {/* Desktop */}

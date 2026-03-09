@@ -104,8 +104,8 @@ const AdminUsers = () => {
     <div>
       <h1 className="mb-6 font-heading text-2xl font-bold">{t.admin.manageUsers}</h1>
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t.admin.userName}</TableHead>

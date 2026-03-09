@@ -209,7 +209,8 @@ const AdminDashboard = () => {
             {(quotaData?.perChannel?.length || 0) > 0 && (
               <>
                 <p className="mb-2 text-sm font-medium">{isPt ? "Uso por usuário (hoje)" : "Usage per user (today)"}</p>
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[400px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>{isPt ? "Usuário" : "User"}</TableHead>
@@ -229,6 +230,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </>
             )}
 
