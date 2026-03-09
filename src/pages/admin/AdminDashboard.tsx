@@ -230,6 +230,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </>
             )}
 
