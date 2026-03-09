@@ -8,7 +8,7 @@ import { Check, Loader2, ExternalLink } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Gift } from "lucide-react";
 
@@ -26,7 +26,9 @@ const Plans = () => {
   const [searchParams] = useSearchParams();
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [managingPortal, setManagingPortal] = useState(false);
+  const [activatingTrial, setActivatingTrial] = useState(false);
   const isPt = t.language === "pt";
+  const queryClient = useQueryClient();
 
   const { data: plans = [] } = useQuery({
     queryKey: ["plans"],
@@ -49,6 +51,34 @@ const Plans = () => {
       return { days: parseInt(map.free_trial_days || "3"), videos: parseInt(map.free_trial_videos_per_day || "1") };
     },
   });
+
+  // Check if user already activated trial
+  const { data: profile } = useQuery({
+    queryKey: ["profile-trial", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("trial_start, plan_id").eq("id", user!.id).single();
+      return data;
+    },
+  });
+
+  const trialActive = !!profile?.trial_start;
+  const trialExpired = trialActive && trialSettings
+    ? new Date(profile.trial_start).getTime() + trialSettings.days * 86400000 < Date.now()
+    : false;
+
+  const handleActivateTrial = async () => {
+    if (!user) { navigate("/register"); return; }
+    setActivatingTrial(true);
+    const { error } = await supabase.from("profiles").update({ trial_start: new Date().toISOString() }).eq("id", user.id);
+    if (error) {
+      toast.error(isPt ? "Erro ao ativar trial" : "Error activating trial");
+    } else {
+      toast.success(isPt ? "Teste gratuito ativado!" : "Free trial activated!");
+      queryClient.invalidateQueries({ queryKey: ["profile-trial"] });
+    }
+    setActivatingTrial(false);
+  };
 
   const { data: subscription, refetch: refetchSub } = useQuery({
     queryKey: ["subscription", user?.id],
@@ -167,8 +197,18 @@ const Plans = () => {
                   <Button className="w-full mt-4" onClick={() => navigate("/register")}>
                     {isPt ? "Começar Grátis" : "Start Free"}
                   </Button>
+                ) : trialActive && !trialExpired ? (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    ✅ {isPt ? "Trial ativo" : "Trial active"} — {isPt ? "expira em" : "expires"}{" "}
+                    {new Date(new Date(profile.trial_start).getTime() + trialSettings!.days * 86400000).toLocaleDateString()}
+                  </p>
+                ) : trialExpired ? (
+                  <p className="mt-4 text-xs text-destructive">{isPt ? "Seu trial expirou" : "Your trial expired"}</p>
                 ) : !activeTier ? (
-                  <p className="mt-4 text-xs text-muted-foreground">{isPt ? "Você já está no trial" : "You're already on trial"}</p>
+                  <Button className="w-full mt-4" onClick={handleActivateTrial} disabled={activatingTrial}>
+                    {activatingTrial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isPt ? "Usar Teste Grátis" : "Start Free Trial"}
+                  </Button>
                 ) : null}
               </CardContent>
             </Card>
