@@ -197,8 +197,18 @@ const Plans = () => {
                   <Button className="w-full mt-4" onClick={() => navigate("/register")}>
                     {isPt ? "Começar Grátis" : "Start Free"}
                   </Button>
+                ) : trialActive && !trialExpired ? (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    ✅ {isPt ? "Trial ativo" : "Trial active"} — {isPt ? "expira em" : "expires"}{" "}
+                    {new Date(new Date(profile.trial_start).getTime() + trialSettings!.days * 86400000).toLocaleDateString()}
+                  </p>
+                ) : trialExpired ? (
+                  <p className="mt-4 text-xs text-destructive">{isPt ? "Seu trial expirou" : "Your trial expired"}</p>
                 ) : !activeTier ? (
-                  <p className="mt-4 text-xs text-muted-foreground">{isPt ? "Você já está no trial" : "You're already on trial"}</p>
+                  <Button className="w-full mt-4" onClick={handleActivateTrial} disabled={activatingTrial}>
+                    {activatingTrial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isPt ? "Usar Teste Grátis" : "Start Free Trial"}
+                  </Button>
                 ) : null}
               </CardContent>
             </Card>
