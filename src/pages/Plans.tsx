@@ -26,7 +26,9 @@ const Plans = () => {
   const [searchParams] = useSearchParams();
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [managingPortal, setManagingPortal] = useState(false);
+  const [activatingTrial, setActivatingTrial] = useState(false);
   const isPt = t.language === "pt";
+  const queryClient = useQueryClient();
 
   const { data: plans = [] } = useQuery({
     queryKey: ["plans"],
