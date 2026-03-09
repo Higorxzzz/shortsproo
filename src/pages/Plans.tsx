@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Gift } from "lucide-react";
 
 // Stripe price/product mapping
 const STRIPE_TIERS: Record<string, { price_id: string; product_id: string; coupon_id: string }> = {
