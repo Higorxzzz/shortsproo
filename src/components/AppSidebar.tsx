@@ -87,6 +87,7 @@ export function AppSidebar() {
     { to: "/admin/raw-videos", icon: HardDrive, label: isPt ? "Vídeos Brutos" : "Raw Videos", roles: ["admin", "manager", "editor"] },
     { to: "/admin/chats", icon: MessageCircle, label: "Chats", roles: ["admin", "manager"] },
     { to: "/admin/announcements", icon: Megaphone, label: isPt ? "Avisos" : "Announcements", roles: ["admin"] },
+    { to: "/admin/landing", icon: Layout, label: "Landing Page", roles: ["admin"] },
     { to: "/admin/settings", icon: Settings, label: isPt ? "Config." : "Settings", roles: ["admin"] },
   ];
 
