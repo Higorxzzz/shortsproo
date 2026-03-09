@@ -37,6 +37,19 @@ const Plans = () => {
     },
   });
 
+  const { data: trialSettings } = useQuery({
+    queryKey: ["trial-settings"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("key, value")
+        .in("key", ["free_trial_days", "free_trial_videos_per_day"]);
+      const map: Record<string, string> = {};
+      (data || []).forEach((r: any) => { map[r.key] = r.value; });
+      return { days: parseInt(map.free_trial_days || "3"), videos: parseInt(map.free_trial_videos_per_day || "1") };
+    },
+  });
+
   const { data: subscription, refetch: refetchSub } = useQuery({
     queryKey: ["subscription", user?.id],
     enabled: !!user,
