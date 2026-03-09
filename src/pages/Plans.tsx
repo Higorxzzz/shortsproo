@@ -132,6 +132,50 @@ const Plans = () => {
           </div>
         )}
       </div>
+      {/* Free Trial Card */}
+      {trialSettings && (
+        <div className="mx-auto max-w-md mb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="relative border-dashed border-2 border-primary/40 bg-primary/5">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-600">
+                <Gift className="h-3 w-3 mr-1" />
+                {isPt ? "Grátis" : "Free"}
+              </Badge>
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="font-heading text-xl">{isPt ? "Plano Gratuito" : "Free Plan"}</CardTitle>
+                <div className="mt-2">
+                  <span className="text-3xl font-bold">$0</span>
+                  <span className="text-muted-foreground"> / {trialSettings.days} {isPt ? "dias" : "days"}</span>
+                </div>
+              </CardHeader>
+              <CardContent className="text-center">
+                <ul className="space-y-2 text-sm text-left inline-block">
+                  <li className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{trialSettings.videos} {trialSettings.videos === 1 ? "short" : "shorts"} {isPt ? "por dia" : "per day"}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{isPt ? `Acesso por ${trialSettings.days} dias` : `${trialSettings.days}-day access`}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{isPt ? "Sem cartão de crédito" : "No credit card required"}</span>
+                  </li>
+                </ul>
+                {!user ? (
+                  <Button className="w-full mt-4" onClick={() => navigate("/register")}>
+                    {isPt ? "Começar Grátis" : "Start Free"}
+                  </Button>
+                ) : !activeTier ? (
+                  <p className="mt-4 text-xs text-muted-foreground">{isPt ? "Você já está no trial" : "You're already on trial"}</p>
+                ) : null}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+
       <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
         {plans.map((plan: any, i: number) => {
           const isPopular = i === 1;
