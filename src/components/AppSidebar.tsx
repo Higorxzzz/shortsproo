@@ -104,7 +104,7 @@ export function AppSidebar() {
             <Zap className="h-4 w-4 text-primary" />
           </div>
           {!collapsed && (
-            <span className="font-heading text-lg font-bold">ShortsPro</span>
+            <span className="font-heading text-lg font-bold">{platformName}</span>
           )}
         </NavLink>
       </SidebarHeader>
