@@ -7,9 +7,10 @@ import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PlatformSettingsProvider } from "@/contexts/PlatformSettingsContext";
+import { LandingSettingsProvider } from "@/contexts/LandingSettingsContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import AdminLayout from "@/components/AdminLayout";
-import Landing from "./pages/Landing";
+import LandingRoute from "./components/LandingRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Plans from "./pages/Plans";
@@ -25,6 +26,7 @@ import AdminTeam from "./pages/admin/AdminTeam";
 import AdminRawVideos from "./pages/admin/AdminRawVideos";
 import AdminChats from "./pages/admin/AdminChats";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
+import AdminLandingPage from "./pages/admin/AdminLandingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,31 +39,34 @@ const App = () => (
           <BrowserRouter>
             <AuthProvider>
               <PlatformSettingsProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route element={<DashboardLayout />}>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/plans" element={<Plans />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/my-videos" element={<MyVideos />} />
-                  <Route element={<AdminLayout />}>
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/production" element={<AdminProduction />} />
-                    <Route path="/admin/team" element={<AdminTeam />} />
-                    <Route path="/admin/users" element={<AdminUsers />} />
-                    <Route path="/admin/plans" element={<AdminPlans />} />
-                    <Route path="/admin/videos" element={<AdminVideos />} />
-                    <Route path="/admin/raw-videos" element={<AdminRawVideos />} />
-                    <Route path="/admin/chats" element={<AdminChats />} />
-                    <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-                    <Route path="/admin/settings" element={<AdminSettings />} />
-                  </Route>
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
+                <LandingSettingsProvider>
+                  <Toaster />
+                  <Sonner />
+                  <Routes>
+                    <Route element={<DashboardLayout />}>
+                      <Route path="/" element={<LandingRoute />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/plans" element={<Plans />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/my-videos" element={<MyVideos />} />
+                      <Route element={<AdminLayout />}>
+                        <Route path="/admin" element={<AdminDashboard />} />
+                        <Route path="/admin/production" element={<AdminProduction />} />
+                        <Route path="/admin/team" element={<AdminTeam />} />
+                        <Route path="/admin/users" element={<AdminUsers />} />
+                        <Route path="/admin/plans" element={<AdminPlans />} />
+                        <Route path="/admin/videos" element={<AdminVideos />} />
+                        <Route path="/admin/raw-videos" element={<AdminRawVideos />} />
+                        <Route path="/admin/chats" element={<AdminChats />} />
+                        <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+                        <Route path="/admin/landing" element={<AdminLandingPage />} />
+                        <Route path="/admin/settings" element={<AdminSettings />} />
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
+                    </Route>
+                  </Routes>
+                </LandingSettingsProvider>
               </PlatformSettingsProvider>
             </AuthProvider>
           </BrowserRouter>
