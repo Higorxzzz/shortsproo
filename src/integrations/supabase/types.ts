@@ -88,6 +88,39 @@ export type Database = {
           },
         ]
       }
+      dashboard_banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_url: string
+          link_url: string | null
+          sort_order: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url: string
+          link_url?: string | null
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string
+          link_url?: string | null
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       drive_folders: {
         Row: {
           created_at: string
