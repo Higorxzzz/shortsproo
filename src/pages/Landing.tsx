@@ -12,7 +12,7 @@ import {
 import {
   Upload, Download, Play, ArrowRight,
   Scissors, CalendarCheck, LayoutDashboard, Headphones,
-  Star, Users, Eye, ThumbsUp, Quote, Zap,
+  Star, Users, Eye, ThumbsUp, Quote,
 } from "lucide-react";
 
 const Landing = () => {
