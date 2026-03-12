@@ -6,7 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
   Sun, Moon, Globe, LogOut, MessageCircle, Megaphone, Layout,
-  CreditCard, Settings, Film, Home, UserPlus, LogIn,
+  CreditCard, Settings, Film, Home,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -62,13 +62,6 @@ export function AppSidebar() {
     navigate("/");
   };
 
-  // Public navigation (for non-logged-in users)
-  const publicLinks = [
-    { to: "/", icon: Home, label: isPt ? "Início" : "Home" },
-    { to: "/login", icon: LogIn, label: isPt ? "Entrar" : "Sign in" },
-    { to: "/register", icon: UserPlus, label: isPt ? "Cadastrar" : "Sign up" },
-  ];
-
   // Admin links only
   const adminLinks = [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard", roles: ["admin"] },
@@ -103,23 +96,16 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Public links for non-logged users */}
-        {!user && (
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                {isPt ? "Navegação" : "Navigation"}
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {publicLinks.map((item) => (
-                  <SidebarLink key={item.to} collapsed={collapsed} {...item} />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {/* Back to dashboard */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarLink to="/dashboard" icon={Home} label={isPt ? "Voltar ao Painel" : "Back to Dashboard"} collapsed={collapsed} />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
 
         {/* Admin links only for team members */}
         {isTeamMember && visibleAdminLinks.length > 0 && (
