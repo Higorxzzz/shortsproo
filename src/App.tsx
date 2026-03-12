@@ -77,6 +77,7 @@ const App = () => (
                         <Route path="/admin/raw-videos" element={<AdminRawVideos />} />
                         <Route path="/admin/chats" element={<AdminChats />} />
                         <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+                        <Route path="/admin/banners" element={<AdminBanners />} />
                         <Route path="/admin/landing" element={<AdminLandingPage />} />
                         <Route path="/admin/settings" element={<AdminSettings />} />
                       </Route>
