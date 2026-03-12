@@ -24,7 +24,10 @@ export const Navbar = () => {
     <nav className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="container flex h-14 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
-          {platformName}
+          {logoUrl ? (
+            <img src={logoUrl} alt={platformName} className="h-7 w-7 object-contain" />
+          ) : null}
+          <span className="hidden sm:inline">{platformName}</span>
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
