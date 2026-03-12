@@ -1,7 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload, MessageCircle, Layout } from "lucide-react";
+import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload, MessageCircle, Layout, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AdminLink = {
@@ -20,6 +20,8 @@ const adminLinks: AdminLink[] = [
   { to: "/admin/videos", icon: Film, labelKey: "videos", requiredRoles: ["admin", "manager"] },
   { to: "/admin/raw-videos", icon: Upload, labelKey: "rawVideos", requiredRoles: ["admin", "manager", "editor"] },
   { to: "/admin/chats", icon: MessageCircle, labelKey: "chats", requiredRoles: ["admin", "manager"] },
+  { to: "/admin/announcements", icon: MessageCircle, labelKey: "announcements", requiredRoles: ["admin"] },
+  { to: "/admin/banners", icon: Image, labelKey: "banners", requiredRoles: ["admin"] },
   { to: "/admin/landing", icon: Layout, labelKey: "landing", requiredRoles: ["admin"] },
   { to: "/admin/settings", icon: Settings, labelKey: "settings", requiredRoles: ["admin"] },
 ];
@@ -41,6 +43,8 @@ const AdminLayout = () => {
     videos: t.admin.videos,
     rawVideos: t.language === "pt" ? "Vídeos Brutos" : "Raw Videos",
     chats: t.language === "pt" ? "Chats" : "Chats",
+    announcements: t.language === "pt" ? "Avisos" : "Announcements",
+    banners: "Banners",
     landing: "Landing Page",
     settings: t.admin.settings,
   };

@@ -6,10 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Upload, Film, Calendar, CalendarDays, CreditCard,
-  LayoutDashboard, ArrowRight,
+  ArrowRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
+import YouTubeShortsCarousel from "@/components/dashboard/YouTubeShortsCarousel";
 
 const Dashboard = () => {
   const { t } = useLanguage();
@@ -50,7 +51,21 @@ const Dashboard = () => {
     },
   });
 
+  const { data: banners = [] } = useQuery({
+    queryKey: ["dashboard-banners"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dashboard_banners")
+        .select("*")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      return data || [];
+    },
+  });
+
   const plan = (profile as any)?.plans;
+  const channelId = (profile as any)?.youtube_channel_id;
 
   if (!user) return null;
 
@@ -106,7 +121,7 @@ const Dashboard = () => {
       <AnnouncementBanner />
 
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <p className="text-sm text-muted-foreground">
           {isPt ? "Olá" : "Hello"}, {profile?.name || user.email?.split("@")[0]} 👋
         </p>
@@ -115,8 +130,46 @@ const Dashboard = () => {
         </h1>
       </div>
 
+      {/* Banners */}
+      {banners.length > 0 && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {banners.map((banner: any) => {
+            const content = (
+              <div className="relative overflow-hidden rounded-xl border border-border">
+                <img
+                  src={banner.image_url}
+                  alt={banner.title || "Banner"}
+                  className="w-full h-auto max-h-48 object-cover"
+                />
+                {banner.title && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                    <p className="text-sm font-semibold text-white">{banner.title}</p>
+                  </div>
+                )}
+              </div>
+            );
+
+            if (banner.link_url) {
+              return (
+                <a
+                  key={banner.id}
+                  href={banner.link_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block transition-transform hover:scale-[1.01]"
+                >
+                  {content}
+                </a>
+              );
+            }
+
+            return <div key={banner.id}>{content}</div>;
+          })}
+        </div>
+      )}
+
       {/* Navigation Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {navCards.map((card) => (
           <Link key={card.to} to={card.to}>
             <Card className="h-full transition-all hover:border-primary/30 hover:shadow-md">
@@ -141,6 +194,9 @@ const Dashboard = () => {
           </Link>
         ))}
       </div>
+
+      {/* YouTube Shorts */}
+      <YouTubeShortsCarousel channelId={channelId} />
     </div>
   );
 };

@@ -31,6 +31,7 @@ import AdminRawVideos from "./pages/admin/AdminRawVideos";
 import AdminChats from "./pages/admin/AdminChats";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminLandingPage from "./pages/admin/AdminLandingPage";
+import AdminBanners from "./pages/admin/AdminBanners";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ const App = () => (
                         <Route path="/admin/raw-videos" element={<AdminRawVideos />} />
                         <Route path="/admin/chats" element={<AdminChats />} />
                         <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+                        <Route path="/admin/banners" element={<AdminBanners />} />
                         <Route path="/admin/landing" element={<AdminLandingPage />} />
                         <Route path="/admin/settings" element={<AdminSettings />} />
                       </Route>
