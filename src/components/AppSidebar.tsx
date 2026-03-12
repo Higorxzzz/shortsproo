@@ -7,6 +7,7 @@ import {
   Upload, Film, CreditCard, Settings, LogOut,
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
   Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle, Megaphone, Layout,
+  Calendar, CalendarDays,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -74,7 +75,9 @@ export function AppSidebar() {
 
   const userLinks = [
     { to: "/dashboard", icon: Upload, label: isPt ? "Enviar Vídeo" : "Upload Video" },
+    { to: "/today", icon: Calendar, label: isPt ? "Entregas de Hoje" : "Today's Deliveries" },
     { to: "/my-videos", icon: Film, label: isPt ? "Meus Vídeos" : "My Videos" },
+    { to: "/calendar", icon: CalendarDays, label: isPt ? "Calendário" : "Calendar" },
   ];
 
   const adminLinks = [

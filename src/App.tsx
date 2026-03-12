@@ -15,7 +15,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Plans from "./pages/Plans";
 import Dashboard from "./pages/Dashboard";
+import TodayDeliveries from "./pages/TodayDeliveries";
 import MyVideos from "./pages/MyVideos";
+import VideoCalendar from "./pages/VideoCalendar";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPlans from "./pages/admin/AdminPlans";
@@ -49,7 +51,9 @@ const App = () => (
                       <Route path="/register" element={<Register />} />
                       <Route path="/plans" element={<Plans />} />
                       <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/today" element={<TodayDeliveries />} />
                       <Route path="/my-videos" element={<MyVideos />} />
+                      <Route path="/calendar" element={<VideoCalendar />} />
                       <Route element={<AdminLayout />}>
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="/admin/production" element={<AdminProduction />} />
