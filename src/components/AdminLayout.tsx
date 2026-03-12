@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Film, CreditCard, Settings, ListTodo, UsersRound, Upload, MessageCircle, Layout, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 type AdminLink = {
   to: string;
@@ -28,11 +29,20 @@ const adminLinks: AdminLink[] = [
 
 const AdminLayout = () => {
   const { t } = useLanguage();
-  const { isTeamMember, teamRole, loading } = useAuth();
+  const { user, isTeamMember, teamRole, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <div className="flex h-[60vh] items-center justify-center">Loading...</div>;
-  if (!isTeamMember) return <Navigate to="/dashboard" />;
+  // Wait for both auth AND roles to load
+  if (loading || (user && teamRole === null && !isTeamMember)) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isTeamMember) return <Navigate to="/dashboard" replace />;
 
   const labels: Record<string, string> = {
     dashboard: t.admin.title,

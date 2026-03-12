@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlatformSettings } from "@/contexts/PlatformSettingsContext";
@@ -6,8 +6,35 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { SupportChat } from "@/components/SupportChat";
 import { ArrowLeft, LogOut, Sun, Moon, Globe } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
 
 const UserLayout = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  const isPublicRoute = ["/", "/login", "/register"].includes(location.pathname);
+
+  // Public routes use Navbar
+  if (isPublicRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main>
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
+  // Protected routes: redirect to login if not authenticated
+  if (!loading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <AuthenticatedLayout />;
+};
+
+const AuthenticatedLayout = () => {
   const { user, signOut } = useAuth();
   const { language, setLanguage } = useLanguage();
   const { platformName, logoUrl } = usePlatformSettings();
@@ -18,7 +45,6 @@ const UserLayout = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="flex h-12 items-center justify-between px-4 max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
