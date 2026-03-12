@@ -7,6 +7,7 @@ import {
   Upload, Film, CreditCard, Settings, LogOut,
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
   Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle, Megaphone, Layout,
+  Calendar, CalendarDays,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
