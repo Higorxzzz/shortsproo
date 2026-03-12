@@ -6,7 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
   Sun, Moon, Globe, LogOut, MessageCircle, Megaphone, Layout,
-  CreditCard, Settings, Film,
+  CreditCard, Settings, Film, Home,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
