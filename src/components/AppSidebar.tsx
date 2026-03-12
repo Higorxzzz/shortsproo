@@ -50,7 +50,7 @@ function SidebarLink({ to, icon: Icon, label, collapsed }: { to: string; icon: R
 
 export function AppSidebar() {
   const { t, language, setLanguage } = useLanguage();
-  const { platformName } = usePlatformSettings();
+  const { platformName, logoUrl } = usePlatformSettings();
   const { user, isTeamMember, teamRole, signOut } = useAuth();
   const { state } = useSidebar();
   const { theme, setTheme } = useTheme();
