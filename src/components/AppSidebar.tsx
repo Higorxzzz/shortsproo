@@ -4,7 +4,7 @@ import { usePlatformSettings } from "@/contexts/PlatformSettingsContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  Upload, Film, CreditCard, Settings, LogOut, Zap,
+  Upload, Film, CreditCard, Settings, LogOut,
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
   Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle, Megaphone, Layout,
 } from "lucide-react";
@@ -95,26 +95,21 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Logo */}
       <SidebarHeader className="p-3">
-        <NavLink
-          to="/"
-          className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Zap className="h-4 w-4 text-primary" />
-          </div>
+        <NavLink to="/" className="flex items-center gap-2.5 px-2 py-1.5">
           {!collapsed && (
-            <span className="font-heading text-lg font-bold">{platformName}</span>
+            <span className="text-base font-semibold">{platformName}</span>
+          )}
+          {collapsed && (
+            <span className="text-base font-semibold">{platformName.charAt(0)}</span>
           )}
         </NavLink>
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Public links */}
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest">
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
               {isPt ? "Navegação" : "Navigation"}
             </SidebarGroupLabel>
           )}
@@ -127,13 +122,12 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Auth links (only when not logged in) */}
         {!user && (
           <>
             <SidebarSeparator />
             <SidebarGroup>
               {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   {isPt ? "Conta" : "Account"}
                 </SidebarGroupLabel>
               )}
@@ -148,13 +142,12 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* User links (only when logged in) */}
         {user && (
           <>
             <SidebarSeparator />
             <SidebarGroup>
               {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   {isPt ? "Meu Painel" : "My Panel"}
                 </SidebarGroupLabel>
               )}
@@ -169,13 +162,12 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* Admin links */}
         {isTeamMember && visibleAdminLinks.length > 0 && (
           <>
             <SidebarSeparator />
             <SidebarGroup>
               {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   Admin
                 </SidebarGroupLabel>
               )}
@@ -191,10 +183,8 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* Footer */}
       <SidebarFooter className="p-2">
         <div className="flex flex-col gap-0.5">
-          {/* Theme */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -210,7 +200,6 @@ export function AppSidebar() {
             {collapsed && <TooltipContent side="right">{isPt ? "Tema" : "Theme"}</TooltipContent>}
           </Tooltip>
 
-          {/* Language */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -226,26 +215,20 @@ export function AppSidebar() {
             {collapsed && <TooltipContent side="right">{isPt ? "Idioma" : "Language"}</TooltipContent>}
           </Tooltip>
 
-          {/* User section */}
           {user && (
             <>
               <SidebarSeparator className="my-1" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50 cursor-default">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-                      {(user.email?.[0] || "U").toUpperCase()}
-                    </div>
-                    {!collapsed && (
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-xs font-medium">{user.email?.split("@")[0]}</p>
-                        <p className="truncate text-[10px] text-muted-foreground">{user.email}</p>
-                      </div>
-                    )}
+              <div className="flex items-center gap-2 px-2 py-1.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-medium">
+                  {(user.email?.[0] || "U").toUpperCase()}
+                </div>
+                {!collapsed && (
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-xs font-medium">{user.email?.split("@")[0]}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{user.email}</p>
                   </div>
-                </TooltipTrigger>
-                {collapsed && <TooltipContent side="right">{user.email}</TooltipContent>}
-              </Tooltip>
+                )}
+              </div>
 
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -253,7 +236,7 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     onClick={handleSignOut}
-                    className="w-full justify-start gap-2 text-xs text-destructive/70 hover:bg-destructive/10 hover:text-destructive h-8"
+                    className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-foreground h-8"
                   >
                     <LogOut className="h-4 w-4 shrink-0" />
                     {!collapsed && (t.nav.logout)}

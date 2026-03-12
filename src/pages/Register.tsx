@@ -104,10 +104,7 @@ const Register = () => {
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Zap className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="font-heading text-2xl">{t.auth.registerTitle}</CardTitle>
+          <CardTitle className="text-xl font-semibold">{t.auth.registerTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="flex flex-col gap-4">

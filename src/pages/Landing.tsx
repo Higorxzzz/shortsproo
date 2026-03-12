@@ -12,7 +12,7 @@ import {
 import {
   Upload, Download, Play, ArrowRight,
   Scissors, CalendarCheck, LayoutDashboard, Headphones,
-  Star, Users, Eye, ThumbsUp, Quote, Zap,
+  Star, Users, Eye, ThumbsUp, Quote,
 } from "lucide-react";
 
 const Landing = () => {
@@ -62,16 +62,12 @@ const Landing = () => {
     <div className="flex flex-col">
       {/* Hero */}
       {show.hero && (
-        <section className="py-20 md:py-28">
-          <div className="container flex flex-col items-center gap-6 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-sm text-muted-foreground">
-              <Play className="h-3.5 w-3.5" />
-              {txt("hero.badge", t.hero.badge)}
-            </div>
-            <h1 className="max-w-2xl font-heading text-3xl font-bold leading-tight md:text-5xl">
+        <section className="py-16 md:py-24">
+          <div className="container flex flex-col items-center gap-5 text-center">
+            <h1 className="max-w-2xl text-3xl font-bold leading-tight md:text-4xl">
               {txt("hero.title", t.hero.title)}
             </h1>
-            <p className="max-w-lg text-muted-foreground">
+            <p className="max-w-lg text-sm text-muted-foreground">
               {txt("hero.subtitle", t.hero.subtitle)}
             </p>
             <div className="flex gap-3">
