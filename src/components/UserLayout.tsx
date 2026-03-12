@@ -26,8 +26,13 @@ const UserLayout = () => {
     );
   }
 
+  // Prevent UI flicker (e.g. Back button) before auth is restored
+  if (loading) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
   // Protected routes: redirect to login if not authenticated
-  if (!loading && !user) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
