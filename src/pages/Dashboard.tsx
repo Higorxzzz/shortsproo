@@ -92,7 +92,6 @@ const Dashboard = () => {
       icon: Film,
       title: isPt ? "Meus Vídeos" : "My Videos",
       desc: isPt ? "Todos os vídeos editados" : "All edited videos",
-      stat: editedCount > 0 ? `${editedCount} ${isPt ? "vídeos" : "videos"}` : undefined,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
     },
