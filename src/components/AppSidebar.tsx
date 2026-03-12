@@ -96,24 +96,6 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Public links for non-logged users */}
-        {!user && (
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                {isPt ? "Navegação" : "Navigation"}
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {publicLinks.map((item) => (
-                  <SidebarLink key={item.to} collapsed={collapsed} {...item} />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
         {/* Admin links only for team members */}
         {isTeamMember && visibleAdminLinks.length > 0 && (
           <SidebarGroup>
