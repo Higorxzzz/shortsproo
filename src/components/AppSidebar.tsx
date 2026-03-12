@@ -96,6 +96,17 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Back to dashboard */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarLink to="/dashboard" icon={Home} label={isPt ? "Voltar ao Painel" : "Back to Dashboard"} collapsed={collapsed} />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
         {/* Admin links only for team members */}
         {isTeamMember && visibleAdminLinks.length > 0 && (
           <SidebarGroup>
