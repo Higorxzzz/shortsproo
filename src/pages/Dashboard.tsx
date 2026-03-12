@@ -39,17 +39,6 @@ const Dashboard = () => {
     },
   });
 
-  const { data: editedCount = 0 } = useQuery({
-    queryKey: ["edited-videos-count", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("videos")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user!.id);
-      return count || 0;
-    },
-  });
 
   const { data: banners = [] } = useQuery({
     queryKey: ["dashboard-banners"],
