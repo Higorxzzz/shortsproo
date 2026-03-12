@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  rolesLoaded: boolean;
   isAdmin: boolean;
   isTeamMember: boolean;
   teamRole: TeamRole;
@@ -20,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [teamRole, setTeamRole] = useState<TeamRole>(null);
 
@@ -32,12 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
 
       if (session?.user) {
+        setRolesLoaded(false);
         setTimeout(() => {
           checkRoles(session.user.id);
         }, 0);
       } else {
         setIsAdmin(false);
         setTeamRole(null);
+        setRolesLoaded(true);
       }
     });
 
@@ -47,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       if (session?.user) {
         checkRoles(session.user.id);
+      } else {
+        setRolesLoaded(true);
       }
     });
 
@@ -62,21 +68,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const roles = (data || []).map((r) => r.role);
     setIsAdmin(roles.includes("admin"));
 
-    // Set highest team role
     if (roles.includes("admin")) setTeamRole("admin");
     else if (roles.includes("manager")) setTeamRole("manager");
     else if (roles.includes("editor")) setTeamRole("editor");
     else setTeamRole(null);
+
+    setRolesLoaded(true);
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
     setTeamRole(null);
+    setRolesLoaded(true);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, isTeamMember, teamRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, rolesLoaded, isAdmin, isTeamMember, teamRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );
