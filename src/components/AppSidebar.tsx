@@ -62,13 +62,6 @@ export function AppSidebar() {
     navigate("/");
   };
 
-  // Public navigation (for non-logged-in users)
-  const publicLinks = [
-    { to: "/", icon: Home, label: isPt ? "Início" : "Home" },
-    { to: "/login", icon: LogIn, label: isPt ? "Entrar" : "Sign in" },
-    { to: "/register", icon: UserPlus, label: isPt ? "Cadastrar" : "Sign up" },
-  ];
-
   // Admin links only
   const adminLinks = [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard", roles: ["admin"] },
