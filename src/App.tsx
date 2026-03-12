@@ -31,6 +31,7 @@ import AdminRawVideos from "./pages/admin/AdminRawVideos";
 import AdminChats from "./pages/admin/AdminChats";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminLandingPage from "./pages/admin/AdminLandingPage";
+import AdminBanners from "./pages/admin/AdminBanners";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
