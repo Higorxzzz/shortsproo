@@ -11,7 +11,7 @@ import { useState } from "react";
 export const Navbar = () => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
-  const { platformName } = usePlatformSettings();
+  const { platformName, logoUrl } = usePlatformSettings();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
