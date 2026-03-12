@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Plans from "./pages/Plans";
 import Dashboard from "./pages/Dashboard";
+import UploadVideo from "./pages/UploadVideo";
 import TodayDeliveries from "./pages/TodayDeliveries";
 import MyVideos from "./pages/MyVideos";
 import VideoCalendar from "./pages/VideoCalendar";
