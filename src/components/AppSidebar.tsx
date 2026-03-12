@@ -74,7 +74,8 @@ export function AppSidebar() {
   ];
 
   const userLinks = [
-    { to: "/dashboard", icon: Upload, label: isPt ? "Enviar Vídeo" : "Upload Video" },
+    { to: "/dashboard", icon: LayoutDashboard, label: isPt ? "Painel" : "Dashboard" },
+    { to: "/upload", icon: Upload, label: isPt ? "Enviar Vídeo" : "Upload Video" },
     { to: "/today", icon: Calendar, label: isPt ? "Entregas de Hoje" : "Today's Deliveries" },
     { to: "/my-videos", icon: Film, label: isPt ? "Meus Vídeos" : "My Videos" },
     { to: "/calendar", icon: CalendarDays, label: isPt ? "Calendário" : "Calendar" },
