@@ -36,14 +36,14 @@ const defaultConfig: LandingConfig = {
 };
 
 const LandingSettingsContext = createContext<LandingSettingsContextType>({
-  landingEnabled: true,
+  landingEnabled: false,
   config: defaultConfig,
   loading: true,
   refetch: async () => {},
 });
 
 export const LandingSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [landingEnabled, setLandingEnabled] = useState(true);
+  const [landingEnabled, setLandingEnabled] = useState(false);
   const [config, setConfig] = useState<LandingConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
 
