@@ -1,7 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import VideoPreviewModal from "@/components/dashboard/VideoPreviewModal";
 const MyVideos = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const isPt = (t as any).language === "pt";
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -51,67 +50,76 @@ const MyVideos = () => {
   if (!user) return null;
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">{isPt ? "Meus Vídeos" : "My Videos"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isPt ? "Todos os seus vídeos editados" : "All your edited videos"}
-        </p>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold sm:text-2xl">{isPt ? "Meus Vídeos" : "My Videos"}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {isPt ? "Todos os seus vídeos editados" : "All your edited videos"}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className="text-xs">
+            {filteredVideos.length} {isPt ? "vídeos" : "videos"}
+          </Badge>
+          {newVideosCount > 0 && (
+            <Badge className="text-xs">
+              {newVideosCount} {isPt ? "novos" : "new"}
+            </Badge>
+          )}
+        </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      {/* Filters */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={isPt ? "Buscar vídeo..." : "Search video..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 w-48 pl-8 text-xs"
+            className="h-9 pl-9 text-sm"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-8 w-28 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{isPt ? "Todos" : "All"}</SelectItem>
-            <SelectItem value="new">{isPt ? "Novos" : "New"}</SelectItem>
-            <SelectItem value="downloaded">{isPt ? "Baixados" : "Downloaded"}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortOrder} onValueChange={setSortOrder}>
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <ArrowUpDown className="mr-1 h-3 w-3" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">{isPt ? "Mais recentes" : "Newest"}</SelectItem>
-            <SelectItem value="oldest">{isPt ? "Mais antigos" : "Oldest"}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Badge variant="outline" className="text-xs">
-          {filteredVideos.length} {isPt ? "vídeos" : "videos"}
-        </Badge>
-        {newVideosCount > 0 && (
-          <Badge className="text-xs">
-            {newVideosCount} {isPt ? "novos" : "new"}
-          </Badge>
-        )}
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-full sm:w-32 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{isPt ? "Todos" : "All"}</SelectItem>
+              <SelectItem value="new">{isPt ? "Novos" : "New"}</SelectItem>
+              <SelectItem value="downloaded">{isPt ? "Baixados" : "Downloaded"}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger className="h-9 w-full sm:w-36 text-sm">
+              <ArrowUpDown className="mr-1.5 h-3.5 w-3.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">{isPt ? "Mais recentes" : "Newest"}</SelectItem>
+              <SelectItem value="oldest">{isPt ? "Mais antigos" : "Oldest"}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
+      {/* Grid */}
       {filteredVideos.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center py-16 text-center">
-            <Film className="mb-3 h-10 w-10 text-muted-foreground/30" />
+            <Film className="mb-3 h-10 w-10 text-muted-foreground/20" />
             <p className="text-sm text-muted-foreground">
               {searchQuery
                 ? (isPt ? "Nenhum vídeo encontrado" : "No videos found")
-                : t.dashboard.noVideos}
+                : (isPt ? "Nenhum vídeo editado ainda" : "No edited videos yet")}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredVideos.map((video: any) => (
             <VideoCard key={video.id} video={video} onPreview={setPreviewVideo} />
           ))}

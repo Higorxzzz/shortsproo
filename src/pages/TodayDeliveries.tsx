@@ -2,13 +2,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Download, Film, CheckCircle2, Clock, Calendar,
-  Upload, Scissors, Package,
+  Download, Film, CheckCircle2, Clock,
+  Upload, Scissors, Package, ArrowRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
@@ -64,99 +64,123 @@ const TodayDeliveries = () => {
   const todayStr = new Date().toDateString();
   const todayVideos = videos.filter((v: any) => new Date(v.uploaded_at).toDateString() === todayStr);
   const todayDeliveredCount = todayVideos.length;
-  const shortsPerDay = plan?.shorts_per_day || todayDeliveredCount || 1;
-  const todayDeliveryProgress = todayDeliveredCount > 0 ? Math.min(100, Math.round((todayDeliveredCount / shortsPerDay) * 100)) : 0;
+  const shortsPerDay = plan?.shorts_per_day || Math.max(todayDeliveredCount, 1);
+  const progress = todayDeliveredCount > 0 ? Math.min(100, Math.round((todayDeliveredCount / shortsPerDay) * 100)) : 0;
 
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">{isPt ? "Entregas de Hoje" : "Today's Deliveries"}</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold sm:text-2xl">{isPt ? "Entregas de Hoje" : "Today's Deliveries"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isPt ? "Acompanhe as entregas do dia" : "Track today's deliveries"}
         </p>
       </div>
 
+      {/* Progress bar */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">{isPt ? "Progresso" : "Progress"}</CardTitle>
-            </div>
-            {todayDeliveredCount > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {todayDeliveredCount}/{shortsPerDay} {isPt ? "entregues" : "delivered"}
-              </Badge>
-            )}
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">{isPt ? "Progresso diário" : "Daily progress"}</span>
+            <Badge variant="secondary" className="text-xs">
+              {todayDeliveredCount}/{shortsPerDay}
+            </Badge>
           </div>
-        </CardHeader>
-        <CardContent>
-          {todayDeliveredCount > 0 ? (
-            <>
-              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{isPt ? "Entregues" : "Delivered"}: {todayDeliveredCount}/{shortsPerDay}</span>
-                <span>{todayDeliveryProgress}%</span>
-              </div>
-              <Progress value={todayDeliveryProgress} className="mb-5 h-2" />
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {todayVideos.map((video: any, i: number) => (
-                  <div
-                    key={video.id}
-                    className={`rounded-lg border p-4 ${
-                      video.status === "downloaded" ? "border-foreground/20 bg-muted/50" : "border-border bg-card"
-                    }`}
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium">{video.title?.replace(/^.*- /, '') || `Short ${i + 1}`}</span>
-                      {video.status === "downloaded" ? (
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+          <Progress value={progress} className="h-2" />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {progress >= 100
+              ? (isPt ? "Meta do dia atingida! ✓" : "Daily goal reached! ✓")
+              : (isPt ? `${shortsPerDay - todayDeliveredCount} restante(s)` : `${shortsPerDay - todayDeliveredCount} remaining`)}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Today's videos */}
+      {todayDeliveredCount > 0 ? (
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {isPt ? "Vídeos entregues hoje" : "Videos delivered today"}
+          </h2>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {todayVideos.map((video: any, i: number) => {
+              const fileId = video.drive_file_id || video.drive_link?.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+              const downloaded = video.status === "downloaded";
+              return (
+                <Card key={video.id} className={downloaded ? "bg-muted/30" : ""}>
+                  <CardContent className="p-4">
+                    {/* Thumbnail */}
+                    {fileId && (
+                      <button
+                        onClick={() => setPreviewVideo(video)}
+                        className="relative mb-3 block w-full overflow-hidden rounded-md bg-muted aspect-video"
+                      >
+                        <img
+                          src={`https://drive.google.com/thumbnail?id=${fileId}&sz=w400`}
+                          alt={video.title}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors">
+                          <Film className="h-6 w-6 text-white opacity-0 hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    )}
+
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="text-sm font-medium line-clamp-2 flex-1">
+                        {video.title?.replace(/^.*- /, "") || `Short ${i + 1}`}
+                      </h3>
+                      {downloaded ? (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                       ) : (
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
                     </div>
-                    <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">{video.title}</p>
-                    <div className="flex gap-1.5">
+
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="h-7 flex-1 text-xs"
+                        variant={downloaded ? "outline" : "default"}
+                        className="h-8 flex-1 text-xs"
                         onClick={() => {
-                          const dlUrl = video.drive_file_id
-                            ? `https://drive.usercontent.google.com/download?id=${video.drive_file_id}&export=download&confirm=t`
+                          const dlUrl = fileId
+                            ? `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`
                             : video.drive_link;
                           window.location.assign(dlUrl);
                           if (video.status === "new") markDownloaded.mutate(video.id);
                         }}
                       >
-                        <Download className="mr-1 h-3 w-3" />
-                        {t.dashboard.download}
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setPreviewVideo(video)}>
-                        <Film className="h-3 w-3" />
+                        <Download className="mr-1.5 h-3.5 w-3.5" />
+                        {downloaded ? (isPt ? "Baixar novamente" : "Re-download") : t.dashboard.download}
                       </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : rawVideos.length > 0 ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground mb-3">
-                {isPt ? "Seus vídeos estão sendo processados pela equipe:" : "Your videos are being processed by the team:"}
-              </p>
-              {rawVideos.map((rv: any) => {
-                const statusConfig: Record<string, { icon: typeof Upload; label: string; labelEn: string }> = {
-                  waiting: { icon: Upload, label: "Enviado", labelEn: "Uploaded" },
-                  editing: { icon: Scissors, label: "Em edição", labelEn: "Editing" },
-                  ready: { icon: Package, label: "Pronto", labelEn: "Ready" },
-                };
-                const cfg = statusConfig[rv.status] || statusConfig.waiting;
-                const Icon = cfg.icon;
-                return (
-                  <div key={rv.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted">
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : rawVideos.length > 0 ? (
+        /* Pipeline status */
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {isPt ? "Em processamento" : "In progress"}
+          </h2>
+          <div className="space-y-2">
+            {rawVideos.map((rv: any) => {
+              const statusMap: Record<string, { icon: typeof Upload; label: string; labelEn: string }> = {
+                waiting: { icon: Upload, label: "Enviado", labelEn: "Uploaded" },
+                editing: { icon: Scissors, label: "Em edição", labelEn: "Editing" },
+                ready: { icon: Package, label: "Pronto", labelEn: "Ready" },
+              };
+              const cfg = statusMap[rv.status] || statusMap.waiting;
+              const Icon = cfg.icon;
+              return (
+                <Card key={rv.id}>
+                  <CardContent className="flex items-center gap-3 p-3 sm:p-4">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                       <Icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -165,30 +189,43 @@ const TodayDeliveries = () => {
                         {new Date(rv.created_at).toLocaleDateString(isPt ? "pt-BR" : "en-US")}
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs shrink-0">
                       {isPt ? cfg.label : cfg.labelEn}
                     </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          ) : !plan ? (
-            <div className="flex flex-col items-center py-8 text-center">
-              <Film className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="mb-3 text-sm text-muted-foreground">{t.dashboard.noPlan}</p>
-              <Button asChild size="sm"><Link to="/plans">{t.dashboard.selectPlan}</Link></Button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center py-8 text-center">
-              <CheckCircle2 className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {isPt ? "Nenhum vídeo pendente. Envie vídeos brutos para iniciar!" : "No pending videos. Upload raw videos to get started!"}
-              </p>
-              <Button asChild size="sm" className="mt-3"><Link to="/dashboard">{isPt ? "Enviar vídeo" : "Upload video"}</Link></Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Empty state */
+        <Card>
+          <CardContent className="flex flex-col items-center py-12 text-center">
+            {!plan ? (
+              <>
+                <Film className="mb-3 h-10 w-10 text-muted-foreground/30" />
+                <p className="mb-1 text-sm font-medium">{isPt ? "Nenhum plano ativo" : "No active plan"}</p>
+                <p className="mb-4 text-xs text-muted-foreground">{t.dashboard.noPlan}</p>
+                <Button asChild size="sm">
+                  <Link to="/plans">{t.dashboard.selectPlan} <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="mb-3 h-10 w-10 text-muted-foreground/30" />
+                <p className="mb-1 text-sm font-medium">{isPt ? "Tudo em dia!" : "All caught up!"}</p>
+                <p className="mb-4 text-xs text-muted-foreground">
+                  {isPt ? "Envie vídeos brutos para iniciar a produção." : "Upload raw videos to start production."}
+                </p>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/dashboard">{isPt ? "Enviar vídeo" : "Upload video"} <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <VideoPreviewModal
         video={previewVideo}
