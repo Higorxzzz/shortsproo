@@ -3,16 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
-import { Check, Loader2, ExternalLink } from "lucide-react";
+import { Check, Loader2, ExternalLink, Gift } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Gift } from "lucide-react";
 
-// Stripe price/product mapping
 const STRIPE_TIERS: Record<string, { price_id: string; product_id: string; coupon_id: string }> = {
   Basic: { price_id: "price_1T8oziGl9Dro90S65eTOEztc", product_id: "prod_U735ZwU7iNkekI", coupon_id: "9WabNny8" },
   Medium: { price_id: "price_1T8ozjGl9Dro90S66BVXU8pc", product_id: "prod_U735dHxMLFG8yb", coupon_id: "VPFy5fKH" },
@@ -52,7 +49,6 @@ const Plans = () => {
     },
   });
 
-  // Check if user already activated trial
   const { data: profile } = useQuery({
     queryKey: ["profile-trial", user?.id],
     enabled: !!user,
@@ -91,7 +87,6 @@ const Plans = () => {
     },
   });
 
-  // Handle success/cancel redirect
   useEffect(() => {
     if (searchParams.get("success") === "true") {
       toast.success(isPt ? "Assinatura realizada com sucesso!" : "Subscription successful!");
@@ -142,12 +137,12 @@ const Plans = () => {
   const activeTier = getActiveTier();
 
   return (
-    <div className="container py-16">
-      <div className="mb-12 text-center">
-        <h1 className="font-heading text-4xl font-bold">{t.plans.title}</h1>
-        <p className="mt-2 text-muted-foreground">{t.plans.subtitle}</p>
+    <div className="container py-12">
+      <div className="mb-10 text-center">
+        <h1 className="font-heading text-3xl font-bold">{t.plans.title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.plans.subtitle}</p>
         {activeTier && subscription?.subscription_end && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm">
+          <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 text-sm">
             <Check className="h-4 w-4 text-primary" />
             <span>
               {isPt ? `Plano ativo: ${activeTier}` : `Active plan: ${activeTier}`}
@@ -155,129 +150,117 @@ const Plans = () => {
               {isPt ? "Renova em " : "Renews "}
               {new Date(subscription.subscription_end).toLocaleDateString()}
             </span>
-            <Button variant="link" size="sm" onClick={handleManageSubscription} disabled={managingPortal} className="ml-2 h-auto p-0 text-xs">
+            <Button variant="link" size="sm" onClick={handleManageSubscription} disabled={managingPortal} className="ml-1 h-auto p-0 text-xs">
               {managingPortal ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3 mr-1" />}
               {isPt ? "Gerenciar" : "Manage"}
             </Button>
           </div>
         )}
       </div>
+
       {/* Free Trial Card */}
       {trialSettings && (
-        <div className="mx-auto max-w-md mb-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="relative border-dashed border-2 border-primary/40 bg-primary/5">
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-600">
+        <div className="mx-auto max-w-sm mb-8">
+          <Card className="border-dashed border-2 border-border">
+            <CardHeader className="text-center pb-2">
+              <Badge variant="secondary" className="mx-auto mb-2 w-fit">
                 <Gift className="h-3 w-3 mr-1" />
                 {isPt ? "Grátis" : "Free"}
               </Badge>
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="font-heading text-xl">{isPt ? "Plano Gratuito" : "Free Plan"}</CardTitle>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold">$0</span>
-                  <span className="text-muted-foreground"> / {trialSettings.days} {isPt ? "dias" : "days"}</span>
-                </div>
-              </CardHeader>
-              <CardContent className="text-center">
-                <ul className="space-y-2 text-sm text-left inline-block">
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{trialSettings.videos} {trialSettings.videos === 1 ? "short" : "shorts"} {isPt ? "por dia" : "per day"}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{isPt ? `Acesso por ${trialSettings.days} dias` : `${trialSettings.days}-day access`}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{isPt ? "Sem cartão de crédito" : "No credit card required"}</span>
-                  </li>
-                </ul>
-                {!user ? (
-                  <Button className="w-full mt-4" onClick={() => navigate("/register")}>
-                    {isPt ? "Começar Grátis" : "Start Free"}
-                  </Button>
-                ) : trialActive && !trialExpired ? (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    ✅ {isPt ? "Trial ativo" : "Trial active"} — {isPt ? "expira em" : "expires"}{" "}
-                    {new Date(new Date(profile.trial_start).getTime() + trialSettings!.days * 86400000).toLocaleDateString()}
-                  </p>
-                ) : trialExpired ? (
-                  <p className="mt-4 text-xs text-destructive">{isPt ? "Seu trial expirou" : "Your trial expired"}</p>
-                ) : !activeTier ? (
-                  <Button className="w-full mt-4" onClick={handleActivateTrial} disabled={activatingTrial}>
-                    {activatingTrial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isPt ? "Usar Teste Grátis" : "Start Free Trial"}
-                  </Button>
-                ) : null}
-              </CardContent>
-            </Card>
-          </motion.div>
+              <CardTitle className="font-heading text-lg">{isPt ? "Plano Gratuito" : "Free Plan"}</CardTitle>
+              <div className="mt-1">
+                <span className="text-2xl font-bold">$0</span>
+                <span className="text-sm text-muted-foreground"> / {trialSettings.days} {isPt ? "dias" : "days"}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="text-center">
+              <ul className="space-y-1.5 text-sm text-left inline-block">
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span>{trialSettings.videos} {trialSettings.videos === 1 ? "short" : "shorts"} {isPt ? "por dia" : "per day"}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span>{isPt ? `Acesso por ${trialSettings.days} dias` : `${trialSettings.days}-day access`}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span>{isPt ? "Sem cartão de crédito" : "No credit card required"}</span>
+                </li>
+              </ul>
+              {!user ? (
+                <Button className="w-full mt-4" size="sm" onClick={() => navigate("/register")}>
+                  {isPt ? "Começar Grátis" : "Start Free"}
+                </Button>
+              ) : trialActive && !trialExpired ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  ✅ {isPt ? "Trial ativo" : "Trial active"} — {isPt ? "expira em" : "expires"}{" "}
+                  {new Date(new Date(profile.trial_start).getTime() + trialSettings!.days * 86400000).toLocaleDateString()}
+                </p>
+              ) : trialExpired ? (
+                <p className="mt-3 text-xs text-destructive">{isPt ? "Seu trial expirou" : "Your trial expired"}</p>
+              ) : !activeTier ? (
+                <Button className="w-full mt-4" size="sm" onClick={handleActivateTrial} disabled={activatingTrial}>
+                  {activatingTrial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isPt ? "Usar Teste Grátis" : "Start Free Trial"}
+                </Button>
+              ) : null}
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
+      <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-3">
         {plans.map((plan: any, i: number) => {
           const isPopular = i === 1;
           const isCurrent = activeTier === plan.name;
           const isLoading = checkingOut === plan.name;
           return (
-            <motion.div
-              key={plan.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Card className={`relative flex h-full flex-col ${isCurrent ? "border-primary shadow-lg ring-2 ring-primary/20" : isPopular ? "border-primary shadow-lg" : ""}`}>
-                {isCurrent && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
-                    {isPt ? "Seu Plano" : "Your Plan"}
-                  </Badge>
+            <Card key={plan.id} className={`relative flex h-full flex-col ${isCurrent ? "border-primary ring-1 ring-primary/20" : isPopular ? "border-primary" : ""}`}>
+              {isCurrent && (
+                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-xs">
+                  {isPt ? "Seu Plano" : "Your Plan"}
+                </Badge>
+              )}
+              {isPopular && !isCurrent && (
+                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-xs">{t.plans.popular}</Badge>
+              )}
+              <CardHeader className="text-center">
+                <CardTitle className="font-heading text-lg">{plan.name}</CardTitle>
+                <div className="mt-1">
+                  <span className="text-2xl font-bold">${plan.price}</span>
+                  <span className="text-sm text-muted-foreground"> /{isPt ? "1º mês" : "1st mo"}</span>
+                </div>
+                {plan.price_second_month > 0 && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {isPt ? "A partir do 2º mês:" : "From 2nd month:"} ${plan.price_second_month}/{isPt ? "mês" : "mo"}
+                  </p>
                 )}
-                {isPopular && !isCurrent && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">{t.plans.popular}</Badge>
-                )}
-                <CardHeader className="text-center">
-                  <CardTitle className="font-heading text-xl">{plan.name}</CardTitle>
-                  <div className="mt-2">
-                    <span className="text-3xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground"> /{isPt ? "1º mês" : "1st mo"}</span>
-                  </div>
-                  {plan.price_second_month > 0 && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {isPt ? "A partir do 2º mês:" : "From 2nd month:"} ${plan.price_second_month}/{isPt ? "mês" : "mo"}
-                    </p>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-3">
+                <ul className="space-y-1.5 text-sm">
+                  {(plan.description || "").split("|").filter(Boolean).map((line: string, li: number) => (
+                    <li key={li} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto">
+                  {isCurrent ? (
+                    <Button className="w-full" variant="secondary" size="sm" onClick={handleManageSubscription} disabled={managingPortal}>
+                      {managingPortal ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      {isPt ? "Gerenciar Assinatura" : "Manage Subscription"}
+                    </Button>
+                  ) : (
+                    <Button className="w-full" size="sm" disabled={isLoading || !!checkingOut} onClick={() => handleCheckout(plan.name)}>
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      {activeTier ? (isPt ? "Trocar Plano" : "Switch Plan") : t.plans.selectPlan}
+                    </Button>
                   )}
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-4">
-                  <ul className="space-y-2 text-sm">
-                    {(plan.description || "").split("|").filter(Boolean).map((line: string, li: number) => (
-                      <li key={li} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto">
-                    {isCurrent ? (
-                      <Button className="w-full" variant="secondary" onClick={handleManageSubscription} disabled={managingPortal}>
-                        {managingPortal ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        {isPt ? "Gerenciar Assinatura" : "Manage Subscription"}
-                      </Button>
-                    ) : (
-                      <Button
-                        className="w-full"
-                        disabled={isLoading || !!checkingOut}
-                        onClick={() => handleCheckout(plan.name)}
-                      >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        {activeTier ? (isPt ? "Trocar Plano" : "Switch Plan") : t.plans.selectPlan}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
