@@ -4,6 +4,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Prevent theme flash on load */
+.hide-until-ready { opacity: 0; }
+
+
 @layer base {
   :root {
     --background: 0 0% 100%;

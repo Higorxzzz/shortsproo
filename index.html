@@ -23,7 +23,22 @@
   <meta name="twitter:description" content="Lovable Generated Project">
 </head>
 
-  <body>
+  <body class="hide-until-ready">
+    <script>
+      // Prevent theme flash: apply saved theme class before paint
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch(e) {}
+        // Remove hide class after theme is applied
+        document.body.classList.remove('hide-until-ready');
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
