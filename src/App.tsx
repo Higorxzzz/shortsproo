@@ -47,14 +47,14 @@ const App = () => (
                   <Toaster />
                   <Sonner />
                   <Routes>
-                    {/* Public pages with Navbar */}
-                    <Route element={<DashboardLayout />}>
+                    {/* Public pages - no sidebar */}
+                    <Route element={<UserLayout />}>
                       <Route path="/" element={<LandingRoute />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                     </Route>
 
-                    {/* User pages - no sidebar, simple header */}
+                    {/* User pages - no sidebar, simple header with back */}
                     <Route element={<UserLayout />}>
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/upload" element={<UploadVideo />} />
@@ -64,7 +64,7 @@ const App = () => (
                       <Route path="/plans" element={<Plans />} />
                     </Route>
 
-                    {/* Admin pages - sidebar with admin links only */}
+                    {/* Admin pages - sidebar with admin links */}
                     <Route element={<DashboardLayout />}>
                       <Route element={<AdminLayout />}>
                         <Route path="/admin" element={<AdminDashboard />} />
