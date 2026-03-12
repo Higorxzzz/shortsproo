@@ -10,6 +10,7 @@ import { PlatformSettingsProvider } from "@/contexts/PlatformSettingsContext";
 import { LandingSettingsProvider } from "@/contexts/LandingSettingsContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import AdminLayout from "@/components/AdminLayout";
+import UserLayout from "@/components/UserLayout";
 import LandingRoute from "./components/LandingRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -46,16 +47,25 @@ const App = () => (
                   <Toaster />
                   <Sonner />
                   <Routes>
+                    {/* Public pages with Navbar */}
                     <Route element={<DashboardLayout />}>
                       <Route path="/" element={<LandingRoute />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
-                      <Route path="/plans" element={<Plans />} />
+                    </Route>
+
+                    {/* User pages - no sidebar, simple header */}
+                    <Route element={<UserLayout />}>
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/upload" element={<UploadVideo />} />
                       <Route path="/today" element={<TodayDeliveries />} />
                       <Route path="/my-videos" element={<MyVideos />} />
                       <Route path="/calendar" element={<VideoCalendar />} />
+                      <Route path="/plans" element={<Plans />} />
+                    </Route>
+
+                    {/* Admin pages - sidebar with admin links only */}
+                    <Route element={<DashboardLayout />}>
                       <Route element={<AdminLayout />}>
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="/admin/production" element={<AdminProduction />} />
@@ -69,8 +79,9 @@ const App = () => (
                         <Route path="/admin/landing" element={<AdminLandingPage />} />
                         <Route path="/admin/settings" element={<AdminSettings />} />
                       </Route>
-                      <Route path="*" element={<NotFound />} />
                     </Route>
+
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </LandingSettingsProvider>
               </PlatformSettingsProvider>

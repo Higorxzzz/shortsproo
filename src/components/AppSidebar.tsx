@@ -4,10 +4,9 @@ import { usePlatformSettings } from "@/contexts/PlatformSettingsContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  Upload, Film, CreditCard, Settings, LogOut,
   LayoutDashboard, Users, ListTodo, UsersRound, HardDrive,
-  Sun, Moon, Globe, Home, UserPlus, LogIn, MessageCircle, Megaphone, Layout,
-  Calendar, CalendarDays,
+  Sun, Moon, Globe, LogOut, MessageCircle, Megaphone, Layout,
+  CreditCard, Settings, Film, Home, UserPlus, LogIn,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -63,24 +62,14 @@ export function AppSidebar() {
     navigate("/");
   };
 
+  // Public navigation (for non-logged-in users)
   const publicLinks = [
     { to: "/", icon: Home, label: isPt ? "Início" : "Home" },
-    { to: "/plans", icon: CreditCard, label: isPt ? "Planos" : "Plans" },
-  ];
-
-  const authLinks = [
     { to: "/login", icon: LogIn, label: isPt ? "Entrar" : "Sign in" },
     { to: "/register", icon: UserPlus, label: isPt ? "Cadastrar" : "Sign up" },
   ];
 
-  const userLinks = [
-    { to: "/dashboard", icon: LayoutDashboard, label: isPt ? "Painel" : "Dashboard" },
-    { to: "/upload", icon: Upload, label: isPt ? "Enviar Vídeo" : "Upload Video" },
-    { to: "/today", icon: Calendar, label: isPt ? "Entregas de Hoje" : "Today's Deliveries" },
-    { to: "/my-videos", icon: Film, label: isPt ? "Meus Vídeos" : "My Videos" },
-    { to: "/calendar", icon: CalendarDays, label: isPt ? "Calendário" : "Calendar" },
-  ];
-
+  // Admin links only
   const adminLinks = [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard", roles: ["admin"] },
     { to: "/admin/production", icon: ListTodo, label: isPt ? "Produção" : "Production", roles: ["admin", "manager", "editor"] },
@@ -114,79 +103,40 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              {isPt ? "Navegação" : "Navigation"}
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {publicLinks.map((item) => (
-                <SidebarLink key={item.to} collapsed={collapsed} {...item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
+        {/* Public links for non-logged users */}
         {!user && (
-          <>
-            <SidebarSeparator />
-            <SidebarGroup>
-              {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {isPt ? "Conta" : "Account"}
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {authLinks.map((item) => (
-                    <SidebarLink key={item.to} collapsed={collapsed} {...item} />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {isPt ? "Navegação" : "Navigation"}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {publicLinks.map((item) => (
+                  <SidebarLink key={item.to} collapsed={collapsed} {...item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
-        {user && (
-          <>
-            <SidebarSeparator />
-            <SidebarGroup>
-              {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {isPt ? "Meu Painel" : "My Panel"}
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {userLinks.map((item) => (
-                    <SidebarLink key={item.to} collapsed={collapsed} {...item} />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
-
+        {/* Admin links only for team members */}
         {isTeamMember && visibleAdminLinks.length > 0 && (
-          <>
-            <SidebarSeparator />
-            <SidebarGroup>
-              {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Admin
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {visibleAdminLinks.map((item) => (
-                    <SidebarLink key={item.to} collapsed={collapsed} {...item} />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Admin
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleAdminLinks.map((item) => (
+                  <SidebarLink key={item.to} collapsed={collapsed} {...item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
       </SidebarContent>
 
