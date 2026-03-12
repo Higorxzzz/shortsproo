@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Plans from "./pages/Plans";
 import Dashboard from "./pages/Dashboard";
+import UploadVideo from "./pages/UploadVideo";
 import TodayDeliveries from "./pages/TodayDeliveries";
 import MyVideos from "./pages/MyVideos";
 import VideoCalendar from "./pages/VideoCalendar";
@@ -51,6 +52,7 @@ const App = () => (
                       <Route path="/register" element={<Register />} />
                       <Route path="/plans" element={<Plans />} />
                       <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/upload" element={<UploadVideo />} />
                       <Route path="/today" element={<TodayDeliveries />} />
                       <Route path="/my-videos" element={<MyVideos />} />
                       <Route path="/calendar" element={<VideoCalendar />} />
