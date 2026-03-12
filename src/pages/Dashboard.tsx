@@ -39,17 +39,6 @@ const Dashboard = () => {
     },
   });
 
-  const { data: editedCount = 0 } = useQuery({
-    queryKey: ["edited-videos-count", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("videos")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user!.id);
-      return count || 0;
-    },
-  });
 
   const { data: banners = [] } = useQuery({
     queryKey: ["dashboard-banners"],
@@ -92,7 +81,6 @@ const Dashboard = () => {
       icon: Film,
       title: isPt ? "Meus Vídeos" : "My Videos",
       desc: isPt ? "Todos os vídeos editados" : "All edited videos",
-      stat: editedCount > 0 ? `${editedCount} ${isPt ? "vídeos" : "videos"}` : undefined,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
     },
