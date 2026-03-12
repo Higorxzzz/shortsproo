@@ -29,11 +29,11 @@ const adminLinks: AdminLink[] = [
 
 const AdminLayout = () => {
   const { t } = useLanguage();
-  const { user, isTeamMember, teamRole, loading } = useAuth();
+  const { user, isTeamMember, teamRole, loading, rolesLoaded } = useAuth();
   const location = useLocation();
 
-  // Wait for both auth AND roles to load
-  if (loading || (user && teamRole === null && !isTeamMember)) {
+  // Wait for auth AND roles to fully load
+  if (loading || !rolesLoaded) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
