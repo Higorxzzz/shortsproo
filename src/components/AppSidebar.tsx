@@ -50,7 +50,7 @@ function SidebarLink({ to, icon: Icon, label, collapsed }: { to: string; icon: R
 
 export function AppSidebar() {
   const { t, language, setLanguage } = useLanguage();
-  const { platformName } = usePlatformSettings();
+  const { platformName, logoUrl } = usePlatformSettings();
   const { user, isTeamMember, teamRole, signOut } = useAuth();
   const { state } = useSidebar();
   const { theme, setTheme } = useTheme();
@@ -100,10 +100,13 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-3">
         <NavLink to="/" className="flex items-center gap-2.5 px-2 py-1.5">
+          {logoUrl ? (
+            <img src={logoUrl} alt={platformName} className="h-7 w-7 shrink-0 object-contain" />
+          ) : null}
           {!collapsed && (
             <span className="text-base font-semibold">{platformName}</span>
           )}
-          {collapsed && (
+          {collapsed && !logoUrl && (
             <span className="text-base font-semibold">{platformName.charAt(0)}</span>
           )}
         </NavLink>
