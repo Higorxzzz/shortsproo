@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlatformSettings } from "@/contexts/PlatformSettingsContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, Upload, X, Image } from "lucide-react";
 
 const PRESET_COLORS = [
   "#6C3AED", "#2563EB", "#0891B2", "#059669",
@@ -20,7 +20,7 @@ const PRESET_COLORS = [
 const AdminSettings = () => {
   const { t } = useLanguage();
   const isPt = t.language === "pt";
-  const { platformName, primaryColor, refetch } = usePlatformSettings();
+  const { platformName, primaryColor, logoUrl, faviconUrl, refetch } = usePlatformSettings();
 
   const [name, setName] = useState(platformName);
   const [color, setColor] = useState(primaryColor);
@@ -31,8 +31,18 @@ const AdminSettings = () => {
   const [loadingTrial, setLoadingTrial] = useState(true);
   const [savingTrial, setSavingTrial] = useState(false);
 
+  const [currentLogoUrl, setCurrentLogoUrl] = useState(logoUrl);
+  const [currentFaviconUrl, setCurrentFaviconUrl] = useState(faviconUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => { setName(platformName); }, [platformName]);
   useEffect(() => { setColor(primaryColor); }, [primaryColor]);
+  useEffect(() => { setCurrentLogoUrl(logoUrl); }, [logoUrl]);
+  useEffect(() => { setCurrentFaviconUrl(faviconUrl); }, [faviconUrl]);
 
   useEffect(() => {
     const fetchTrialSettings = async () => {
@@ -82,12 +92,67 @@ const AdminSettings = () => {
     setSavingTrial(false);
   };
 
+  const uploadBrandingFile = async (file: File, type: "logo" | "favicon") => {
+    const isLogo = type === "logo";
+    const setter = isLogo ? setUploadingLogo : setUploadingFavicon;
+    setter(true);
+
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const fileName = `${type}.${ext}`;
+
+      // Upload to branding bucket (overwrite)
+      const { error: uploadError } = await supabase.storage
+        .from("branding")
+        .upload(fileName, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl + "?t=" + Date.now(); // cache bust
+
+      // Save URL to platform_settings
+      const now = new Date().toISOString();
+      const settingKey = isLogo ? "logo_url" : "favicon_url";
+      const { error: settingsError } = await supabase
+        .from("platform_settings")
+        .upsert({ key: settingKey, value: publicUrl, updated_at: now });
+
+      if (settingsError) throw settingsError;
+
+      if (isLogo) setCurrentLogoUrl(publicUrl);
+      else setCurrentFaviconUrl(publicUrl);
+
+      toast.success(isPt ? `${isLogo ? "Logo" : "Favicon"} atualizado!` : `${isLogo ? "Logo" : "Favicon"} updated!`);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || (isPt ? "Erro no upload" : "Upload error"));
+    } finally {
+      setter(false);
+    }
+  };
+
+  const removeBrandingFile = async (type: "logo" | "favicon") => {
+    const isLogo = type === "logo";
+    const now = new Date().toISOString();
+    const settingKey = isLogo ? "logo_url" : "favicon_url";
+
+    await supabase.from("platform_settings").upsert({ key: settingKey, value: "", updated_at: now });
+
+    if (isLogo) setCurrentLogoUrl(null);
+    else setCurrentFaviconUrl(null);
+
+    toast.success(isPt ? `${isLogo ? "Logo" : "Favicon"} removido` : `${isLogo ? "Logo" : "Favicon"} removed`);
+    refetch();
+  };
+
   const hasGeneralChanges = name !== platformName || color !== primaryColor;
 
   return (
     <div className="max-w-xl">
       <div className="mb-6">
-        <h1 className="font-heading text-xl font-bold">{t.admin.settings}</h1>
+        <h1 className="text-xl font-semibold">{t.admin.settings}</h1>
         <p className="text-sm text-muted-foreground">
           {isPt ? "Personalize a plataforma" : "Customize the platform"}
         </p>
@@ -134,6 +199,110 @@ const AdminSettings = () => {
                 {savingGeneral && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
                 {t.admin.saveSettings}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logo & Favicon */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">{isPt ? "Logo e Favicon" : "Logo & Favicon"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Logo */}
+            <div className="space-y-2">
+              <Label className="text-sm">Logo</Label>
+              <p className="text-xs text-muted-foreground">
+                {isPt ? "Exibido no menu lateral e navbar. Recomendado: PNG transparente, 200×200px." : "Shown in sidebar and navbar. Recommended: transparent PNG, 200×200px."}
+              </p>
+              <div className="flex items-center gap-3">
+                {currentLogoUrl ? (
+                  <div className="relative h-12 w-12 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
+                    <img src={currentLogoUrl} alt="Logo" className="h-full w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="h-12 w-12 shrink-0 rounded-lg border border-dashed border-border bg-muted flex items-center justify-center">
+                    <Image className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadBrandingFile(file, "logo");
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                  >
+                    {uploadingLogo ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
+                    {isPt ? "Enviar" : "Upload"}
+                  </Button>
+                  {currentLogoUrl && (
+                    <Button variant="ghost" size="sm" onClick={() => removeBrandingFile("logo")}>
+                      <X className="mr-1.5 h-3.5 w-3.5" />
+                      {isPt ? "Remover" : "Remove"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Favicon */}
+            <div className="space-y-2">
+              <Label className="text-sm">Favicon</Label>
+              <p className="text-xs text-muted-foreground">
+                {isPt ? "Ícone exibido na aba do navegador. Recomendado: PNG ou ICO, 32×32px ou 64×64px." : "Icon shown in browser tab. Recommended: PNG or ICO, 32×32px or 64×64px."}
+              </p>
+              <div className="flex items-center gap-3">
+                {currentFaviconUrl ? (
+                  <div className="relative h-10 w-10 shrink-0 rounded border border-border bg-muted flex items-center justify-center overflow-hidden">
+                    <img src={currentFaviconUrl} alt="Favicon" className="h-full w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 shrink-0 rounded border border-dashed border-border bg-muted flex items-center justify-center">
+                    <Image className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    ref={faviconInputRef}
+                    type="file"
+                    accept="image/png,image/x-icon,image/svg+xml,image/jpeg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadBrandingFile(file, "favicon");
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => faviconInputRef.current?.click()}
+                    disabled={uploadingFavicon}
+                  >
+                    {uploadingFavicon ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
+                    {isPt ? "Enviar" : "Upload"}
+                  </Button>
+                  {currentFaviconUrl && (
+                    <Button variant="ghost" size="sm" onClick={() => removeBrandingFile("favicon")}>
+                      <X className="mr-1.5 h-3.5 w-3.5" />
+                      {isPt ? "Remover" : "Remove"}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
